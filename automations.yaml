@@ -75,13 +75,26 @@
     entity_id: automation.passage_backlight_reaction
   - service: hello_miai.send
     data_template:
-      message: "过道灯自动感应功能已{% if is_state('automation.passage_backlight_reaction', 'on') %}启用{% else %}停用，所有灯光将在10秒后关闭{% endif %}"
+      message: "过道灯自动感应功能已{% if is_state('automation.passage_backlight_reaction', 'on') %}启用{% else %}暂停，所有灯光将在10秒后关闭{% endif %}"
   - condition: state
     entity_id: automation.passage_backlight_reaction
     state: 'off'
   - delay: '00:00:10'
   - service: homeassistant.turn_off
     entity_id: group.all_lights
+  - delay: '01:00:00'
+  - service: automation.turn_on
+    entity_id: automation.passage_light_on_day
+  - service: automation.turn_on
+    entity_id: automation.passage_light_off_day
+  - service: automation.turn_on
+    entity_id: automation.passage_light_off_brighten
+  - service: automation.turn_on
+    entity_id: automation.passage_light_on_night
+  - service: automation.turn_on
+    entity_id: automation.passage_light_off_night
+  - service: automation.turn_on
+    entity_id: automation.passage_backlight_reaction
 
 # 书房无线开关单击
 - alias: Study Switch Clicked
