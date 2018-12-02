@@ -10,10 +10,16 @@ mkdir ~/.ssh
 sudo reboot
 
 #ssh root@hassbian "mkdir ~/.ssh"
-#ssh admin@hassbian "mkdir ~/.ssh"
 #scp ~/.ssh/authorized_keys root@hassbian:~/.ssh/
+#scp ~/.ssh/id_rsa root@hassbian:~/.ssh/
+#scp ~/.ssh/config root@hassbian:~/.ssh/
+
+#ssh admin@hassbian "mkdir ~/.ssh"
 #scp ~/.ssh/authorized_keys admin@hassbian:~/.ssh/
-#ssh root@hassbian
+#scp ~/.ssh/id_rsa admin@hassbian:~/.ssh/
+#scp ~/.ssh/config admin@hassbian:~/.ssh/
+
+#ssh admin@hassbian
 
 # Rename pi->admin
 usermod -l admin pi
@@ -170,3 +176,4 @@ cat <<\EOF > /etc/fstab
 EOF
 
 apt-get install samba
+
