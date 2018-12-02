@@ -342,8 +342,9 @@ class ModbusClimate(ClimateDevice):
                     val = struct.unpack(mod[CONF_STRUCTURE], byte_string)[0]
                     value = scale * val + offset
             except:
+                import traceback
                 self._exception += 1
-                _LOGGER.error("Exception %d on %s %s", self._exception, self._name, prop)
+                _LOGGER.error("Exception %d on %s %s\n%s", self._exception, self._name, prop, traceback.format_exc())
                 if (self._exception < 5) or (self._exception % 10 == 0):
                     self.reinitialize()
                 return

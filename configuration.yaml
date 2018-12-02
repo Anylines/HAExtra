@@ -655,15 +655,14 @@ cover:
         command_stop: ''
         command_close: ''
 
-#
-#TODO
-# media_player:
-# - platform: braviatv
-#   host: X9300d
-#   name: X9300d
-# - platform: braviatv
-#   host: X9400e
-#   name: X9400e
+# TODO
+media_player:
+- platform: braviatv
+  host: X9300d
+  name: X9300d
+- platform: braviatv
+  host: X9400e
+  name: X9400e
 
 # apple_tv:
 # - host: AppleTV

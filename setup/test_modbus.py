@@ -14,9 +14,12 @@ from pymodbus.transaction import ModbusRtuFramer as ModbusFramer
 client = ModbusClient(host='ModBus', port=8899, framer=ModbusFramer)
 
 kwargs = {'unit': 1}
-result = client.read_input_registers(6, 1, **kwargs)
-
+result = client.read_input_registers(9, 1, **kwargs)
 byte_string = b''.join([x.to_bytes(2, byteorder='big') for x in result.registers])
 value = struct.unpack('>H', byte_string)[0]
+print('Temperature: %d' % (value / 10.0))
 
-print(value)
+result = client.read_holding_registers(4, 1, **kwargs)
+byte_string = b''.join([x.to_bytes(2, byteorder='big') for x in result.registers])
+value = struct.unpack('>H', byte_string)[0]
+print('Target Temperature: %d' % value)

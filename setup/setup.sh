@@ -65,8 +65,11 @@ apt-get install python3-pip python3-dev libffi-dev python3-setuptools
 #systemctl stop lircd.service lircd-setup.service lircd.socket lircd-uinput.service lircmd.service
 #apt remove -y lirc && apt autoremove -y
 
+apt-get install adb
+
 # Home Assistant
 pip3 install wheel
+pip3 install pymodbus
 pip3 install homeassistant
 #pip3 install pycryptodome #https://github.com/home-assistant/home-assistant/issues/12675
 
