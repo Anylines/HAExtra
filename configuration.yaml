@@ -293,6 +293,7 @@ switch:
 - platform: wake_on_lan
   name: Storage
   mac_address: 00-11-32-6B-75-F7
+  broadcast_address: 192.168.1.255
   host: Storage
   turn_off:
     service: shell_command.turn_off_storage

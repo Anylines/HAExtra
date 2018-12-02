@@ -1,6 +1,5 @@
 #  小爱音箱文本朗读
 - alias: MiAI Text To Speech
-  initial_state: true
   trigger:
   - platform: state
     entity_id: input_text.miai
@@ -13,8 +12,7 @@
 
 # 入户门开启
 # - alias: Entrance Door Opened
-#   initial_state: true
-#   trigger:
+# #   trigger:
 #     platform: state
 #     entity_id: binary_sensor.door_window_sensor_158d0001f3e5be
 #     from: 'off'
@@ -82,7 +80,16 @@
   - delay: '00:00:10'
   - service: homeassistant.turn_off
     entity_id: group.all_lights
-  - delay: '01:00:00'
+  - service: automation.turn_on
+    entity_id: automation.passage_light_reaction_enabler
+
+# 过道灯自动响应恢复
+- alias: Passage Light Reaction Enabler
+  initial_state: false
+  trigger:
+  - platform: time
+    at: '06:00:00'
+  action:
   - service: automation.turn_on
     entity_id: automation.passage_light_on_day
   - service: automation.turn_on
@@ -95,6 +102,11 @@
     entity_id: automation.passage_light_off_night
   - service: automation.turn_on
     entity_id: automation.passage_backlight_reaction
+  - service: hello_miai.send
+    data:
+      message: 过道灯自动感应功能已启用
+  - service: automation.turn_off
+    entity_id: automation.passage_light_reaction_enabler
 
 # 书房无线开关单击
 - alias: Study Switch Clicked
@@ -120,8 +132,10 @@
       click_type: double
   action:
   - service: hello_miai.send
-    data:
-      message: 双击书房无线开关
+    data_template:
+      message: "正在{% if is_state('switch.projector', 'on') %}关闭{% else %}打开{% endif %}投影仪"
+  - service: switch.toggle
+    entity_id: switch.projector
 
 # 书房无线开关长按
 - alias: Study Switch Pressed
@@ -132,15 +146,11 @@
       entity_id: binary_sensor.switch_158d000201a73f
       click_type: long_click_press
   action:
-  - service: hello_miai.send
-    data_template:
-      message: "正在{% if is_state('switch.projector', 'on') %}关闭{% else %}打开{% endif %}投影仪"
-  - service: switch.toggle
-    entity_id: switch.projector
+  - service: switch.turn_off
+    entity_id: switch.speaker
 
 # 阳台移门开合
 - alias: Balcony Door Toggled
-  initial_state: true
   trigger:
   - platform: state
     entity_id: binary_sensor.door_window_sensor_158d000228a52b
@@ -165,7 +175,6 @@
 
 # 阳台移门打开
 - alias: Balcony Door Opened
-  initial_state: true
   trigger:
   - platform: state
     entity_id: binary_sensor.door_window_sensor_158d000228a52b
@@ -191,7 +200,6 @@
 
 # 阳台移门关闭
 - alias: Balcony Door Closed
-  initial_state: true
   trigger:
   - platform: state
     entity_id: binary_sensor.door_window_sensor_158d000228a52b
@@ -211,7 +219,6 @@
 
 # 洗手间灯感应开
 - alias: Washroom Light On
-  initial_state: true
   trigger:
   - platform: state
     entity_id: binary_sensor.motion_sensor_158d0001f4a238
@@ -250,7 +257,6 @@
 
 # 过道灯白天感应开
 - alias: Passage Light On Day
-  initial_state: true
   trigger:
   - platform: state
     entity_id: binary_sensor.motion_sensor_158d0001d66ce9
@@ -271,7 +277,6 @@
 
 # 过道灯白天感应关
 - alias: Passage Light Off Day
-  initial_state: true
   trigger:
   - platform: state
     entity_id: binary_sensor.motion_sensor_158d0001d66ce9
@@ -304,7 +309,6 @@
 
 # 过道灯白天变亮关
 - alias: Passage Light Off Brighten
-  initial_state: true
   trigger:
   - platform: numeric_state
     entity_id: sensor.illumination_34ce0090901a
@@ -321,7 +325,6 @@
 
 # 过道灯晚上感应开
 - alias: Passage Light On Night
-  initial_state: true
   trigger:
   - platform: state
     entity_id: binary_sensor.motion_sensor_158d0001d66ce9
@@ -341,7 +344,6 @@
 
 # 过道灯晚上感应关
 - alias: Passage Light Off Night
-  initial_state: true
   trigger:
   - platform: time
     at: '21:30:00'
@@ -367,7 +369,6 @@
 
 # 过道背景灯感应开关
 - alias: Passage Backlight Reaction
-  initial_state: true
   trigger:
   - platform: state
     entity_id: binary_sensor.motion_sensor_158d0001d66ce9
@@ -392,7 +393,6 @@
 
 # 餐厅灯开关同步
 - alias: Diningroom Light Sync
-  initial_state: true
   trigger:
   - platform: state
     entity_id: light.diningroom_light2, light.diningroom_light
@@ -413,7 +413,6 @@
 
 # 客厅灯开关同步
 - alias: Parlor Light Sync
-  initial_state: true
   trigger:
   - platform: state
     entity_id: light.parlor_light2, light.parlor_light
@@ -434,7 +433,6 @@
 
 # 过道灯开关同步
 - alias: Passage Light Sync
-  initial_state: true
   trigger:
   - platform: state
     entity_id: light.passage_light2, light.passage_light
@@ -455,7 +453,6 @@
 
 # 书房灯开关同步
 - alias: Study Light Sync
-  initial_state: true
   trigger:
   - platform: state
     entity_id: light.study_light2, light.study_light3, light.study_light
@@ -478,7 +475,6 @@
 
 # 阳台空气差
 - alias: Balcony PM2.5 Bad
-  initial_state: true
   trigger:
   - platform: numeric_state
     entity_id: sensor.balcony_pm25
@@ -505,7 +501,6 @@
 
 # 阳台空气好
 - alias: Balcony PM2.5 Good
-  initial_state: true
   trigger:
   - platform: numeric_state
     entity_id: sensor.balcony_pm25
@@ -538,7 +533,6 @@
 
 # 室内空气警告
 - alias: Indoor Air Warning
-  initial_state: true
   trigger:
   - platform: numeric_state
     entity_id: sensor.aircat_pm25
@@ -567,7 +561,6 @@
 
 # 室内空气达标
 - alias: Indoor Air Restored
-  initial_state: true
   trigger:
   - platform: numeric_state
     entity_id: sensor.aircat_pm25
@@ -600,7 +593,6 @@
 
 # 客厅湿度超标
 - alias: Parlor Humidity Bad
-  initial_state: true
   trigger:
   - platform: numeric_state
     entity_id: sensor.aircat_humidity
@@ -613,7 +605,6 @@
 
 # 客厅湿度恢复
 - alias: Parlor Humidity Good
-  initial_state: true
   trigger:
   - platform: numeric_state
     entity_id: sensor.aircat_humidity
@@ -626,7 +617,6 @@
 
 # 餐厅空气差
 - alias: Diningroom PM2.5 Bad
-  initial_state: true
   trigger:
   - platform: numeric_state
     entity_id: sensor.aircat_pm25
@@ -658,7 +648,6 @@
 
 # 餐厅空气好
 - alias: Diningroom PM2.5 Good
-  initial_state: true
   trigger:
   - platform: numeric_state
     entity_id: sensor.aircat_pm25
@@ -680,7 +669,6 @@
 
 # 客厅空气闷
 - alias: Parlor CO2 Bad
-  initial_state: true
   trigger:
   - platform: numeric_state
     entity_id: sensor.fresher_co2
@@ -701,7 +689,6 @@
 
 # 客厅空气新鲜
 - alias: Parlor CO2 Good
-  initial_state: true
   trigger:
   - platform: numeric_state
     entity_id: sensor.fresher_co2
@@ -723,7 +710,6 @@
 
 # 书房空气差
 - alias: Study PM2.5 Bad
-  initial_state: true
   trigger:
   - platform: numeric_state
     entity_id: sensor.purifier_pm25
@@ -753,7 +739,6 @@
 
 # 书房空气好
 - alias: Study PM2.5 Good
-  initial_state: true
   trigger:
   - platform: numeric_state
     entity_id: sensor.purifier_pm25
@@ -772,7 +757,6 @@
 
 # 主卧空气差
 - alias: Bedroom PM2.5 Bad
-  initial_state: true
   trigger:
   - platform: numeric_state
     entity_id: sensor.bedroom_pm25
@@ -796,7 +780,6 @@
 
 # 主卧空气好
 - alias: Bedroom PM2.5 Good
-  initial_state: true
   trigger:
   - platform: numeric_state
     entity_id: sensor.bedroom_pm25
@@ -811,7 +794,6 @@
 
 # 卧室空调风量
 - alias: Bedroom Climate Fan
-  initial_state: true
   trigger:
   - platform: time
     at: '08:00:00'
@@ -994,7 +976,6 @@
 
 # 书房亮度太高
 - alias: Study Lightness High
-  initial_state: true
   trigger:
   - platform: time
     at: '12:30:00'
@@ -1016,7 +997,6 @@
 
 # 书房亮度正常
 - alias: Study Lightness Normal
-  initial_state: true
   trigger:
   - platform: time
     at: '16:00:00'
