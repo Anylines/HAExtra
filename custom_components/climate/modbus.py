@@ -296,20 +296,21 @@ class ModbusClimate(ClimateDevice):
         s.close()
 
     def reconnect(self):
+        import time
         from pymodbus.client.sync import ModbusTcpClient as ModbusClient
         from pymodbus.transaction import ModbusRtuFramer as ModbusFramer
         modbus.HUB._client.close()
 
         self.reinitialize()
-        sleep(1)
+        time.sleep(2)
 
         modbus.HUB._client = ModbusClient(
             host=modbus.HUB._client.host,
             port=modbus.HUB._client.port,
             framer=ModbusFramer,
             timeout=modbus.HUB._client.timeout)
-        _LOGGER.error("Reconnect: %s", modbus.HUB._client)
         modbus.HUB._client.connect()
+        _LOGGER.error("Reconnect: %s", modbus.HUB._client)
 
     def update(self):
         """Update state."""
