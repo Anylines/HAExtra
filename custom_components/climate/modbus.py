@@ -343,9 +343,8 @@ class ModbusClimate(ClimateDevice):
                     val = struct.unpack(mod[CONF_STRUCTURE], byte_string)[0]
                     value = scale * val + offset
             except:
-                import traceback
                 self._exception += 1
-                _LOGGER.error("Exception %d on %s %s\nregister_type: %s, slave: %s, register: %s, count: %s, result: %s\n%s", self._exception, self._name, prop, register_type, slave, register, count, result, traceback.format_exc())
+                _LOGGER.error("Exception %d on %s %s, %s/%s/%s", self._exception, self._name, prop, register_type, slave, register)
                 if (self._exception < 5) or (self._exception % 10 == 0):
                     self.reconnect()
                 return
