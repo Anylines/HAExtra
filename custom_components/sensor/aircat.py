@@ -103,7 +103,7 @@ class AirCatData(object):
             payload = end
             self._times = 0
         else:
-            if self._times % 10:
+            if self._times % 8 != 0:
                 return None
 
         if payload >= 28:
