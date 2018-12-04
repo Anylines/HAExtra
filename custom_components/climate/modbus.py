@@ -26,6 +26,7 @@ _LOGGER = logging.getLogger(__name__)
 
 DEPENDENCIES = ['modbus']
 
+CONF_RESET_ON_FAILURE = 'reset_on_failure'
 CONF_TEMPERATURE = 'temperature'
 CONF_TARGET_TEMPERATURE = 'target_temperature'
 CONF_HUMIDITY = 'humidity'
@@ -95,9 +96,12 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
 def setup_platform(hass, config, add_devices, discovery_info=None):
     """Set up the Modbus Thermostat Platform."""
     name = config.get(CONF_NAME)
-    operation_list = config.get(CONF_OPERATION_LIST)
-    fan_list = config.get(CONF_FAN_LIST)
-    swing_list = config.get(CONF_SWING_LIST)
+
+    ModbusClimate._operation_list = config.get(CONF_OPERATION_LIST)
+    ModbusClimate._fan_list = config.get(CONF_FAN_LIST)
+    ModbusClimate._swing_list = config.get(CONF_SWING_LIST)
+    ModbusClimate._reset_on_failure = config.get(CONF_RESET_ON_FAILURE)
+    ModbusClimate._unit = hass.config.units.temperature_unit
 
     data_types = {DATA_TYPE_INT: {1: 'h', 2: 'i', 4: 'q'}}
     data_types[DATA_TYPE_UINT] = {1: 'H', 2: 'I', 4: 'Q'}
@@ -147,20 +151,17 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         return True
 
     devices = []
-    unit = hass.config.units.temperature_unit
     for index in range(100):
         if not has_valid_register(mods, index):
             break
-        devices.append(ModbusClimate(name, unit, operation_list, fan_list,
-                                     swing_list, mods, index))
+        devices.append(ModbusClimate(name, mods, index))
 
     if not devices:
         for prop in mods:
             if CONF_REGISTER not in mods[prop]:
                 _LOGGER.error("Invalid config %s/%s: no register", name, prop)
                 return
-        devices.append(ModbusClimate(name, unit, operation_list, fan_list,
-                                     swing_list, mods))
+        devices.append(ModbusClimate(name, mods))
 
     add_devices(devices, True)
 
@@ -168,16 +169,11 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
 class ModbusClimate(ClimateDevice):
     """Representation of a Modbus climate device."""
 
-    def __init__(self, name, unit, operation_list,
-                 fan_list, swing_list, mods, index=-1):
+    def __init__(self, name, mods, index=-1):
         """Initialize the climate device."""
         self._name = name + str(index + 1) if index != -1 else name
-        self._unit = unit
         self._index = index
         self._mods = mods
-        self._operation_list = operation_list
-        self._fan_list = fan_list
-        self._swing_list = swing_list
         self._values = {}
         self._exception = 0
 
@@ -197,7 +193,7 @@ class ModbusClimate(ClimateDevice):
     @property
     def temperature_unit(self):
         """Return the unit of measurement."""
-        return self._unit
+        return ModbusClimate._unit
 
     @property
     def target_temperature_step(self):
@@ -231,40 +227,40 @@ class ModbusClimate(ClimateDevice):
             return 'off'
 
         operation = self.get_value(CONF_OPERATION)
-        if operation is not None and operation < len(self._operation_list):
-            return self._operation_list[operation]
+        if operation is not None and operation < len(ModbusClimate._operation_list):
+            return ModbusClimate._operation_list[operation]
         return None
 
     @property
     def operation_list(self):
         """Return the list of available operation modes."""
-        return self._operation_list
+        return ModbusClimate._operation_list
 
     @property
     def current_fan_mode(self):
         """Return the fan setting."""
         fan = self.get_value(CONF_FAN)
-        if fan is not None and fan < len(self._fan_list):
-            return self._fan_list[fan]
+        if fan is not None and fan < len(ModbusClimate._fan_list):
+            return ModbusClimate._fan_list[fan]
         return None
 
     @property
     def fan_list(self):
         """Return the list of available fan modes."""
-        return self._fan_list
+        return ModbusClimate._fan_list
 
     @property
     def current_swing_mode(self):
         """Return the swing setting."""
         swing = self.get_value(CONF_SWING)
-        if swing is not None and swing < len(self._swing_list):
-            return self._swing_list[swing]
+        if swing is not None and swing < len(ModbusClimate._swing_list):
+            return ModbusClimate._swing_list[swing]
         return None
 
     @property
     def swing_list(self):
         """List of available swing modes."""
-        return self._swing_list
+        return ModbusClimate._swing_list
 
     @property
     def current_hold_mode(self):
@@ -286,23 +282,23 @@ class ModbusClimate(ClimateDevice):
         """Return true if the device is on."""
         return self.get_value(CONF_IS_ON)
 
-    def reinitialize(self):
+    def reset(self):
         """Initialize USR module"""
-        import socket
+        import socket, time
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(5)
         s.connect((modbus.HUB._client.host, modbus.HUB._client.port))
         s.sendall(b'\x55\xAA\x55\x00\x25\x80\x03\xA8') # For USR initialize
         s.close()
+        time.sleep(1)
 
     def reconnect(self):
-        import time
         from pymodbus.client.sync import ModbusTcpClient as ModbusClient
         from pymodbus.transaction import ModbusRtuFramer as ModbusFramer
         modbus.HUB._client.close()
 
-        self.reinitialize()
-        time.sleep(2)
+        if ModbusClimate._reset_on_failure:
+            self.reset()
 
         modbus.HUB._client = ModbusClient(
             host=modbus.HUB._client.host,
@@ -344,7 +340,7 @@ class ModbusClimate(ClimateDevice):
                     value = scale * val + offset
             except:
                 self._exception += 1
-                _LOGGER.error("Exception %d on %s %s, %s/%s/%s", self._exception, self._name, prop, register_type, slave, register)
+                _LOGGER.error("Exception %d on %s/%s (%s/%s/%s)", self._exception, self._name, prop, register_type, slave, register)
                 if (self._exception < 5) or (self._exception % 10 == 0):
                     self.reconnect()
                 return
