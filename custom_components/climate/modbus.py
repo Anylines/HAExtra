@@ -340,7 +340,7 @@ class ModbusClimate(ClimateDevice):
                     value = scale * val + offset
             except:
                 self._exception += 1
-                _LOGGER.error("Exception %d on %s/%s (%s/%s/%s)", self._exception, self._name, prop, register_type, slave, register)
+                _LOGGER.error("Exception %d on %s/%s at %s/slave%s/register%s", self._exception, self._name, prop, register_type, slave, register)
                 if (self._exception < 5) or (self._exception % 10 == 0):
                     self.reconnect()
                 return
