@@ -90,20 +90,13 @@ class AirCatData(object):
             conn.sendall(response)
 
     def response(self, data, payload, end):
-        try:
-            self._responseIndex += 1
-            if self._responseIndex % 10 == 0:
-                return None
-        except:
-            self._responseIndex = 0
-
         # begin(17) + mac(6)+size(5) + payload(0~) + end(6)
         if payload == -1 and end >= 28 and data[end-1] != (125 if isinstance(data[end-1], int) else '}'):
             _LOGGER.info('  Control message: %s', data)
             payload = end
             self._times = 0
         else:
-            if self._times % 8 != 0:
+            if self._times % 5 != 0:
                 return None
 
         if payload >= 28:
