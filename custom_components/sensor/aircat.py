@@ -5,6 +5,10 @@ import socket
 import select
 import logging
 
+#Bridge receive: b'\xaaO\x01UA\xf19\x8f\x0b\x00\x00\x00\x00\x00\x00\x00\x00\xb0\xf8\x93\x1f\x14U\x00Z\x00\x00\x02{"sleep":"1","startTime":82800,"endTime":21600,"type":1}\xff#END#'
+#Bridge receive: b'\xaaO\x01UA\xf19\x8f\x0b\x00\x00\x00\x00\x00\x00\x00\x00\xb0\xf8\x93\x1f\x14U\x00>\x00\x00\x02{"brightness":"25","type":2}\xff#END#'
+#Bridge receive: b'\xaaO\x01UA\xf19\x8f\x0b\x00\x00\x00\x00\x00\x00\x00\x00\xb0\xf8\x93\x1f\x14U\x007\x00\x00\x02{"type":5,"status":1}\xff#END#'
+
 _LOGGER = logging.getLogger(__name__)
 
 class AirCatData(object):
@@ -18,6 +22,7 @@ class AirCatData(object):
         self._socket.bind(('', 9000)) # aircat.phicomm.com
         self._socket.listen(5)
         self._rlist = [self._socket]
+        self._times = 0
         self.devs = {}
 
     def shutdown(self):
@@ -66,19 +71,22 @@ class AirCatData(object):
         end = data.rfind(b'\xff#END#')
         payload = data.rfind(b'{', 0, end)
 
+        self._times += 1
         if payload >= 11:
             mac = ''.join(['%02X' % (x if isinstance(x, int) else ord(x)) for x in data[payload-11:payload-5]])
             try:
                 jsonStr = data[payload:end].decode('utf-8')
                 attributes = json.loads(jsonStr)
                 self.devs[mac] = attributes
-                _LOGGER.debug('Received %s: %s', mac, attributes)
+                _LOGGER.debug('%d Received %s: %s', self._times, mac, attributes)
             except:
-                _LOGGER.error('Received invalid JSON: %s', data)
+                _LOGGER.error('%d Received invalid: %s', self._times, data)
+        else:
+            _LOGGER.error('%d Received short payload: %s', self._times, data)
 
         response = self.response(data, payload, end)
         if response:
-            _LOGGER.debug('Response %s\n\n', response)
+            _LOGGER.debug('  Response %s\n', response)
             conn.sendall(response)
 
     def response(self, data, payload, end):
@@ -91,17 +99,21 @@ class AirCatData(object):
 
         # begin(17) + mac(6)+size(5) + payload(0~) + end(6)
         if payload == -1 and end >= 28 and data[end-1] != (125 if isinstance(data[end-1], int) else '}'):
-            _LOGGER.info('Received control message: %s', data)
+            _LOGGER.info('  Control message: %s', data)
             payload = end
+            self._times = 0
+        else:
+            if self._times:
+                return None
 
         if payload >= 28:
             prefix = data[payload-28:payload-5]
         else:
-            _LOGGER.error('Received invalid prefix: %s', data)
+            _LOGGER.error('  Invalid prefix: %s', data)
             #prefix = b'\xaaO\x01UA\xf19\x8f\x0b\x00\x00\x00\x00\x00\x00\x00\x00\xb0\xf8\x93\x1f\x14U'
             return None
 
-        return prefix + b'\x00\x18\x00\x00\x02{"type":5,"status":1}\xff#END#'
+        return prefix + b'\x00\x37\x00\x00\x02{"type":5,"status":1}\xff#END#'
 
 class AirCatBridge(AirCatData):
     """Class for handling the data retrieval."""
@@ -121,14 +133,14 @@ class AirCatBridge(AirCatData):
             self._phicomm = None
 
     def response(self, data, payload, end):
-        print('Bridge send: %s' % data)
+        print('  Bridge send: %s' % data)
         self._phicomm.sendall(data)
         try:
             response = self._phicomm.recv(4096)
-            print('Bridge receive: %s' % response)
+            print('  Bridge receive: %s' % response)
             return response
         except:
-            print('Bridge receive: None!')
+            print('  Bridge receive: None!')
             return super(AirCatBridge, self).response(data, payload, end)
 
 if __name__ == '__main__':
