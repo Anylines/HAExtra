@@ -48,8 +48,9 @@ class AirCatData(object):
                 else:
                     self.handle(fd)
             except:
-                import traceback
-                _LOGGER.error('Exception: %s', traceback.format_exc())
+                #import traceback
+                #_LOGGER.error('Exception: %s', traceback.format_exc())
+                pass
 
     def handle(self, conn):
         """Handle connection."""
@@ -120,7 +121,7 @@ class AirCatBridge(AirCatData):
 
     def shutdown(self):
         """Shutdown."""
-        super.shutdown()
+        super(AirCatBridge, self).shutdown()
         if self._phicomm is not None:
             self._phicomm.close()
             self._phicomm = None
