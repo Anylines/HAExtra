@@ -233,18 +233,22 @@ class CaiYunData:
 
             data['cloud_rate'] = result['cloudrate']
             data['pressure'] = int(result['pres'])
-            nearest = result['precipitation']['nearest']
-            local = result['precipitation']['local']
-            data['nearest_precipitation'] = nearest['intensity']
-            data['precipitation_distance'] = nearest['distance']
-            data['local_precipitation'] = local['intensity']
-            data['wind_direction'] = result['wind']['direction']
-            data['wind_speed'] = result['wind']['speed']
-            data['pm10'] = result['pm10']
-            data['o3'] = result['o3']
-            data['co'] = result['co']
-            data['no2'] = result['no2']
-            data['so2'] = result['so2']
+            precipitation = result.get('precipitation')
+            if precipitation:
+                if 'nearest' in precipitation:
+                    data['nearest_precipitation'] = precipitation['nearest'].get('intensity')
+                    data['precipitation_distance'] = precipitation['nearest'].get('distance')
+                if 'local' in precipitation:
+                    data['local_precipitation'] = precipitation['local'].get('intensity')
+            wind = result.get('wind')
+            if wind:
+                data['wind_direction'] = wind.get('direction')
+                data['wind_speed'] = wind.get('speed')
+            data['pm10'] = result.get('pm10')
+            data['o3'] = result.get('o3')
+            data['co'] = result.get('co')
+            data['no2'] = result.get('no2')
+            data['so2'] = result.get('so2')
         except:
             import traceback
             _LOGGER.error('exception: %s', traceback.format_exc())
