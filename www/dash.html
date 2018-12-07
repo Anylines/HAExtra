@@ -61,7 +61,7 @@
 
     </style>
 </head>
-<body bgcolor="black" text="white" style="-webkit-user-select:none">
+<body bgcolor="black" text="white" style="-webkit-user-select:none; font-family:Helvetica;">
     <script>
 
 function httpRequest(url, callback, body, headers) {
@@ -125,10 +125,11 @@ function handleStates(items) {
 
         'light': 'circle-outline',
         'switch': 'light-switch',
-        'media_player': 'play-circle-outline',
 
         'fan': 'fan',
         'climate': 'thermostat',
+
+        'media_player': 'play-circle-outline',
         'cover': 'window-closed',
         'vacuum': 'robot-vacuum',
         //'group': 'account-group',
@@ -168,7 +169,8 @@ function handleStates(items) {
     var grids = '';
     for (var i in items) {
         var item = items[i];
-        var domain = item.entity_id.split('.')[0];
+        var entity_id = item.entity_id;
+        var domain = entity_id.split('.')[0];
         if (!domain_icons.hasOwnProperty(domain))
             continue;
 
@@ -185,7 +187,16 @@ function handleStates(items) {
                 icon = 'minus-circle-outline';
         } else {
             disabled = '';
-            extra = attributes.hasOwnProperty('dashboard_static_text_attribute') ? attributes[attributes['dashboard_static_text_attribute']] : attributes['speed'];
+            if (attributes.hasOwnProperty('dashboard_static_text_attribute')) {
+                extra = attributes[attributes['dashboard_static_text_attribute']];
+            } else if (domain == 'climate') {
+                extra = (states.hasOwnProperty(state) ? states[state] : state) + ' ' + attributes['temperature'];
+            } else if (domain == 'fan') {
+                var speed = attributes['speed'].toLowerCase();
+                extra = states.hasOwnProperty(speed) ? states[speed] : speed.replace("level", "档位");
+            } else {
+                extra = null;
+            }
         }
 
         var clientWidth = window.innerWidth - 15;
@@ -194,22 +205,19 @@ function handleStates(items) {
         var width = (clientWidth - 22 - (count - 1) * 6) / count;
         //console.log('clientWidth: ' + clientWidth + ' count: ' + count + ' width: ' + width);
 
-        grids += '<div class="' + (state == 'unavailable' ? 'unavailable' : domain) + '" style="width: ' + width + 'px"><p>' + attributes.friendly_name  +  '</p>'
+        grids += '<div class="' + (state == 'unavailable' ? 'unavailable' : domain) + '" style="width: ' + width + 'px" onclick="handleClick(\'' + entity_id + '\',' + (disabled == '' ? 'true' : 'false') + ')"><p>' + attributes.friendly_name  +  '</p>'
         if ((domain == 'sensor' && attributes['mdicon'] == null) || domain == 'climate') {
-            var unit;
-            if (states.hasOwnProperty(state))
-                state = states[state];
+
             if (domain == 'climate') {
-                unit = state;
                 state = attributes['current_temperature'];
-            } else {
-                unit = attributes['unit_of_measurement'];
+            } else if (states.hasOwnProperty(state)) {
+                state = states[state];
             }
 
             var nan = isNaN(state);
-            if (!nan)
-                state = parseFloat(state);
-            grids += '<div style="font-size:' + (nan ? 40 : 50) + 'px;' + disabled + '">' + state
+            grids += '<div style="font-size:' + (nan ? 40 : 50) + 'px;' + disabled + '">' + (nan ? state : parseFloat(state));
+
+            var unit = attributes['unit_of_measurement'];
             if (unit && disabled == '')
                 grids += '<span style="font-size:10px">' + unit + '</span>'
             grids += '</div>'
@@ -225,14 +233,22 @@ function handleStates(items) {
         }
 
         if (extra != null) {
-            extra = extra.toLowerCase();
-            extra = states.hasOwnProperty(extra) ? states[extra] : extra.replace("level", "档位");
             grids += '<div style="font-size:14px">' + extra + '</div>';
         }
         grids += '</div> ';
     }
 
     document.body.innerHTML = grids;
+}
+
+function handleClick(entity_id, on) {
+    var domain = entity_id.split('.')[0];
+    if (domain == 'sensor' || domain == 'binary_sensor' || domain == 'device_tracker')
+        return;
+
+    haRequest('services/' + domain + '/' + (on ? 'turn_on' : 'turn_off'), function(result) {
+        haRequest('states', handleStates);
+    }, '{"entity_id": "' + entity_id + '"}');
 }
 
 haRequest('states', handleStates);
