@@ -112,7 +112,7 @@ function haRequest(api, callback, body, headers) {
     }, body, headers);
 }
 
-function handleItems(items) {
+function handleStates(items) {
     if (items == null) {
         document.write('Error on request states! e.g. http://xxx.xxx.xxx.xxx:8123/local/dash.html?password');
         return;
@@ -162,7 +162,7 @@ function handleItems(items) {
     items.sort(function(x, y) {
         var index1 = domains.indexOf(x.entity_id.split('.')[0]);
         var index2 = domains.indexOf(y.entity_id.split('.')[0]);
-        return (index1 == index2) ? x.attributes.friendly_name.localeCompare(y.attributes.friendly_name) : (index1 - index2);
+        return (index1 == index2 && x.attributes.hasOwnProperty('friendly_name') && y.attributes.hasOwnProperty('friendly_name')) ? x.attributes.friendly_name.localeCompare(y.attributes.friendly_name) : (index1 - index2);
     });
 
     var grids = '';
@@ -235,8 +235,8 @@ function handleItems(items) {
     document.body.innerHTML = grids;
 }
 
-haRequest('states', handleItems);
-setInterval("haRequest('states', handleItems)", 60000);
+haRequest('states', handleStates);
+setInterval("haRequest('states', handleStates)", 60000);
 
     </script>
 </body>
