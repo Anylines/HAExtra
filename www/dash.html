@@ -16,10 +16,6 @@
     text-align: center;
     font-weight: 300;
     font-size: : 11pt;
-
-/*    justify-content: center;
-    align-items: center;
-    display: -webkit-flex;*/
 }
 
 .climate:hover, .cover:hover, .fan:hover, .group:hover, .light:hover, .media_player:hover, .switch:hover, .vacuum:hover {
@@ -67,6 +63,7 @@
 </head>
 <body bgcolor="black" text="white" style="-webkit-user-select:none">
     <script>
+
 function httpRequest(url, callback, body, headers) {
     var req = new XMLHttpRequest();
     req.onreadystatechange = function() {
@@ -109,13 +106,13 @@ function haRequest(api, callback, body, headers) {
             url += '?api_password=' + search.slice(1)
     }
 
-    console.log('haRequest: ' + url);
+    console.log(new Date().toLocaleTimeString() + ': ' + url);
     httpRequest(url, function(text) {
         if (callback) callback(text ? JSON.parse(text) : null);
     }, body, headers);
 }
 
-haRequest("states", function(items) {
+function handleItems(items) {
     if (items == null) {
         document.write('Error on request states! e.g. http://xxx.xxx.xxx.xxx:8123/local/dash.html?password');
         return;
@@ -236,7 +233,10 @@ haRequest("states", function(items) {
     }
 
     document.body.innerHTML = grids;
-});
+}
+
+haRequest('states', handleItems);
+setInterval("haRequest('states', handleItems)", 60000);
 
     </script>
 </body>
