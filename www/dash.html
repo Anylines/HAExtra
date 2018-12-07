@@ -245,10 +245,10 @@ function generateEntity(entity) {
     var count = (clientWidth - 11 - 5) / 136;
     count = parseInt(count);
     if (count < 3) count = 3;
-    var width = (clientWidth - 22 - (count - 1) * 6) / count;
+    var width = parseFloat((clientWidth - 22 - (count - 1) * 6) / count).toFixed(1);
     //console.log('clientWidth: ' + clientWidth + ' count: ' + count + ' width: ' + width);
 
-    var grid = '<div class="' + (state == 'unavailable' ? 'unavailable' : domain) + '" style="width:' + width + 'px" onclick="handleClick(\'' + entity_id + '\',' + (disabled == '' ? 'true' : 'false') + ')">';
+    var grid = '<div class="' + (state == 'unavailable' ? 'unavailable' : domain) + '" id="' + entity_id + '" style="width:' + width + 'px" onclick="clickEntity(this)">';
     grid += '<div class="name">' + attributes.friendly_name + '</div>';
     if ((domain == 'sensor' && attributes['mdicon'] == null) || domain == 'climate') {
         if (domain == 'climate') {
@@ -283,13 +283,29 @@ function generateEntity(entity) {
     return grid;
 }
 
-function handleClick(entity_id, on) {
+function clickEntity(element) {
+    entity_id = element.id;
     var domain = entity_id.split('.')[0];
     if (domain == 'sensor' || domain == 'binary_sensor' || domain == 'device_tracker')
         return;
 
-    haRequest('services/' + domain + '/' + (on ? 'turn_on' : 'turn_off'), function(result) {
-        haRequest('states', handleStates);
+    var state = element.children[1];
+    var action = state.className == 'state-disabled' ? 'turn_on' : 'turn_off';
+    haRequest('services/' + domain + '/' + action, function(result) {
+        if (result instanceof Array) {
+            haRequest('states/' + entity_id, function(entity) {
+                if (entity != null) {
+                    var grid = generateEntity(entity);
+                    var template = document.createElement('template');
+                    template.innerHTML = grid;
+                    element.parentNode.replaceChild(template.content.firstChild, element);
+                } else {
+                    alert('Error on refresh ' + entity_id);
+                }
+            });
+        } else {
+            alert('Error on ' + action + ' ' + entity_id);
+        }
     }, '{"entity_id": "' + entity_id + '"}');
 }
 
