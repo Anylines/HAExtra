@@ -65,7 +65,7 @@
 
     </style>
 </head>
-<body bgcolor="black" text="white">
+<body bgcolor="black" text="white" style="-webkit-user-select:none">
     <script>
 function httpRequest(url, callback, body, headers) {
     var req = new XMLHttpRequest();
@@ -117,22 +117,24 @@ function haRequest(api, callback, body, headers) {
 
 haRequest("states", function(items) {
     if (items == null) {
-        document.write('Error on request states');
+        document.write('Error on request states! e.g. http://xxx.xxx.xxx.xxx:8123/local/dash.html?password');
         return;
     }
 
     var domain_icons = {
+        'sensor': 'flower',
         'binary_sensor': 'bullseye',
+        'device_tracker': 'account',
+
+        'light': 'circle-outline',
+        'switch': 'light-switch',
+        'media_player': 'play-circle-outline',
+
+        'fan': 'fan',
         'climate': 'thermostat',
         'cover': 'window-closed',
-        'device_tracker': 'account',
-        'fan': 'fan',
-        //'group': 'account-group',
-        'light': 'circle-outline',
-        'media_player': 'play-circle-outline',
-        'sensor': 'flower',
-        'switch': 'light-switch',
         'vacuum': 'robot-vacuum',
+        //'group': 'account-group',
     };
 
     var states = {
@@ -154,10 +156,17 @@ haRequest("states", function(items) {
         'dry': '除湿',
         'fan': '送风',
 
+        'favorite': '最爱',
         'unavailable': '不可用',
     };
 
-    items.sort(function(x, y) {return x.entity_id.localeCompare(y.entity_id)});
+    var domains = Object.keys(domain_icons);
+    console.log()
+    items.sort(function(x, y) {
+        var index1 = domains.indexOf(x.entity_id.split('.')[0]);
+        var index2 = domains.indexOf(y.entity_id.split('.')[0]);
+        return (index1 == index2) ? x.attributes.friendly_name.localeCompare(y.attributes.friendly_name) : (index1 - index2);
+    });
 
     var grids = '';
     for (var i in items) {
@@ -182,7 +191,13 @@ haRequest("states", function(items) {
             extra = attributes.hasOwnProperty('dashboard_static_text_attribute') ? attributes[attributes['dashboard_static_text_attribute']] : attributes['speed'];
         }
 
-        grids += '<div class="' + (state == 'unavailable' ? 'unavailable' : domain) + '"><p>' + attributes.friendly_name  +  '</p>'
+        var clientWidth = window.innerWidth - 15;
+        var count = (clientWidth - 11 - 5) / 156;
+        count = parseInt(count);
+        var width = (clientWidth - 22 - (count - 1) * 6) / count;
+        //console.log('clientWidth: ' + clientWidth + ' count: ' + count + ' width: ' + width);
+
+        grids += '<div class="' + (state == 'unavailable' ? 'unavailable' : domain) + '" style="width: ' + width + 'px"><p>' + attributes.friendly_name  +  '</p>'
         if ((domain == 'sensor' && attributes['mdicon'] == null) || domain == 'climate') {
             var unit;
             if (states.hasOwnProperty(state))
