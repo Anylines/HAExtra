@@ -242,10 +242,11 @@ function generateEntity(entity) {
     }
 
     var clientWidth = document.documentElement.clientWidth;
-    var count = (clientWidth - 11 - 5) / 136;
+    var count = (clientWidth - 11 - 5) / 126;
     count = parseInt(count);
     if (count < 3) count = 3;
-    var width = parseFloat((clientWidth - 22 - (count - 1) * 6) / count).toFixed(1);
+    var width = (clientWidth - 22 - (count - 1) * 6) / count;
+    width = Math.floor(width * 10) / 10;
     //console.log('clientWidth: ' + clientWidth + ' count: ' + count + ' width: ' + width);
 
     var grid = '<div class="' + (state == 'unavailable' ? 'unavailable' : domain) + '" id="' + entity_id + '" style="width:' + width + 'px" onclick="clickEntity(this)">';
