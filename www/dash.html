@@ -223,7 +223,7 @@ function generateEntity(entity) {
     var state = entity.state;
     var attributes = entity.attributes;
     var disabled, extra;
-    if (state == 'off' || state == 'not_home' || state == 'unavailable' || state == 'closed') {
+    if (state == 'off' || state == 'not_home' || state == 'unavailable' || state == 'closed' || state == 'docked') {
         extra = null;
         disabled =  '-disabled';
         if (domain == 'binary_sensor')
@@ -304,18 +304,20 @@ function clickEntity(element) {
         var action = disabled ? 'turn_on' : 'turn_off';
 
     haRequest('services/' + domain + '/' + action, function(result) {
-        if (result instanceof Array) {
-            haRequest('states/' + entity_id, function(entity) {
-                if (entity != null) {
-                    var grid = generateEntity(entity);
-                    var template = document.createElement('template');
-                    template.innerHTML = grid;
-                    element.parentNode.replaceChild(template.content.firstChild, element);
-                } else {
-                    alert('Error on refresh ' + entity_id);
-                }
-                _processing = false;
-            });
+        if (result != null) {
+            setTimeout(function() { // Delay to fetch correct fan/climate state
+                haRequest('states/' + entity_id, function(entity) {
+                    if (entity != null) {
+                        var grid = generateEntity(entity);
+                        var template = document.createElement('template');
+                        template.innerHTML = grid;
+                        element.parentNode.replaceChild(template.content.firstChild, element);
+                    } else {
+                        alert('Error on refresh ' + entity_id);
+                    }
+                    _processing = false;
+                });
+            }, (domain == 'fan') ? 1000 : ((domain == 'climate') ? 15000 : 200));
         } else {
             alert('Error on ' + action + ' ' + entity_id);
             _processing = false;
