@@ -111,6 +111,7 @@ function httpRequest(url, callback, body, headers) {
         }
         catch(e) {
             req.abort();
+            console.log('Exception:' + e);
             if(callback) callback();
         }
     };
@@ -222,7 +223,7 @@ function generateEntity(entity) {
     var state = entity.state;
     var attributes = entity.attributes;
     var disabled, extra;
-    if (state == 'off' || state == 'not_home' || state == 'unavailable') {
+    if (state == 'off' || state == 'not_home' || state == 'unavailable' || state == 'closed') {
         extra = null;
         disabled =  '-disabled';
         if (domain == 'binary_sensor')
@@ -251,9 +252,9 @@ function generateEntity(entity) {
 
     var grid = '<div class="' + (state == 'unavailable' ? 'unavailable' : domain) + '" id="' + entity_id + '" style="width:' + width + 'px" onclick="clickEntity(this)">';
     grid += '<div class="name">' + attributes.friendly_name + '</div>';
-    if ((domain == 'sensor' && attributes['mdicon'] == null) || domain == 'climate') {
+    if ((domain == 'sensor' && attributes.mdicon == null) || domain == 'climate') {
         if (domain == 'climate') {
-            state = attributes['current_temperature'];
+            state = attributes.current_temperature;
         } else if (state_map.hasOwnProperty(state)) {
             state = states[state];
         }
@@ -262,11 +263,11 @@ function generateEntity(entity) {
         grid += '<div class="state' + disabled + (nan ? '-nan' : '') + '">';
         grid += nan ? state : parseFloat(state);
 
-        var unit = attributes['unit_of_measurement'];
+        var unit = attributes.unit_of_measurement;
         if (unit && disabled == '')
             grid += '<span class="unit">' + unit + '</span>'
     } else {
-        var icon = attributes['icon'];
+        var icon = attributes.icon;
         if (icon && icon.startsWith('mdi:'))
             icon = icon.slice(4);
         else
@@ -284,14 +285,24 @@ function generateEntity(entity) {
     return grid;
 }
 
+var _processing = false;
 function clickEntity(element) {
+    if (_processing)
+        return;
+    _processing = true;
+
     entity_id = element.id;
     var domain = entity_id.split('.')[0];
     if (domain == 'sensor' || domain == 'binary_sensor' || domain == 'device_tracker')
         return;
 
     var state = element.children[1];
-    var action = state.className == 'state-disabled' ? 'turn_on' : 'turn_off';
+    var disabled = state.className == 'state-disabled';
+    if (domain == 'cover')
+        var action = disabled ? 'open_cover' : 'close_cover';
+    else
+        var action = disabled ? 'turn_on' : 'turn_off';
+
     haRequest('services/' + domain + '/' + action, function(result) {
         if (result instanceof Array) {
             haRequest('states/' + entity_id, function(entity) {
@@ -303,9 +314,11 @@ function clickEntity(element) {
                 } else {
                     alert('Error on refresh ' + entity_id);
                 }
+                _processing = false;
             });
         } else {
             alert('Error on ' + action + ' ' + entity_id);
+            _processing = false;
         }
     }, '{"entity_id": "' + entity_id + '"}');
 }
