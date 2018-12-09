@@ -93,6 +93,7 @@
 }
 
 body {
+    margin: 3px;
     background-color: black;
     color: white;
     font-family: Helvetica;
@@ -218,9 +219,9 @@ function handleStates(entities) {
 
     // Adjust grid width
     var clientWidth = document.documentElement.clientWidth;
-    var count = (clientWidth - 11 - 5) / 126;
+    var count = (clientWidth - 12 + 6) / 126;
     count = parseInt(count);
-    var width = (clientWidth - 22 - (count - 1) * 6) / count;
+    var width = (clientWidth - 12 - (count - 1) * 6) / count;
     width = Math.floor(width * 10) / 10;
     document.styleSheets[1].cssRules[0].style.width = width + 'px';
     //console.log('clientWidth:' + clientWidth + ' count:' + count + ' width:' + width);
