@@ -4,8 +4,7 @@
     <title>物联智能</title>
     <meta charset="utf-8" />
     <meta id="viewport" name="viewport" />
-    <link href="https://cdn.bootcss.com/MaterialDesign-Webfont/2.4.85/css/materialdesignicons.min.css" rel="stylesheet">
-    <!--link href="https://cdn.bootcss.com/material-design-icons/3.0.1/iconfont/material-icons.min.css" rel="stylesheet"-->
+    <link href="https://cdn.bootcss.com/MaterialDesign-Webfont/3.2.89/css/materialdesignicons.min.css" rel="stylesheet">
     <style>
 
 ::-webkit-scrollbar {
@@ -15,6 +14,9 @@
 .name, .extra {
     height: 34px;
     line-height:34px;
+    text-overflow: clip;
+    overflow: hidden;
+    white-space: nowrap;
 }
 
 .state, .state-disabled, .state-nan, .state-disabled-nan {
@@ -261,7 +263,7 @@ function generateEntity(entity) {
 
         var nan = isNaN(state);
         grid += '<div class="state' + disabled + (nan ? '-nan' : '') + '">';
-        grid += nan ? state : parseFloat(state);
+        grid += nan ? state : Math.floor(parseFloat(state) * 100) / 100;
 
         var unit = attributes.unit_of_measurement;
         if (unit && disabled == '')
