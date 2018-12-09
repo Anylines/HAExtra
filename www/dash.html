@@ -7,45 +7,11 @@
     <link href="https://cdn.bootcss.com/MaterialDesign-Webfont/3.2.89/css/materialdesignicons.min.css" rel="stylesheet">
     <style>
 
-::-webkit-scrollbar {
-    display:none;
-}
-
-.name, .extra {
-    height: 34px;
-    line-height:34px;
-    text-overflow: clip;
-    overflow: hidden;
-    white-space: nowrap;
-}
-
-.state, .state-disabled, .state-nan, .state-disabled-nan {
-    height: 52px;
-    line-height:52px;
-}
-
-.state, .state-disabled {
-    font-size: 44px;
-}
-
-.state-nan, .state-disabled-nan {
-    font-size: 36px;
-}
-
-.state-disabled, .state-disabled-nan {
-    color:rgba(230,230,230,0.5);
-}
-
-.unit {
-    font-size: 10px
-}
-
 .binary_sensor, .climate, .cover, .device_tracker, .fan, .group, .light, .media_player, .sensor, .switch, .vacuum, .unavailable {
-    float:left;
     width: 120px;
     height: 120px;
     margin: 3px;
-
+    float: left;
     color: white;
     text-align: center;
     font-weight: 300;
@@ -58,7 +24,7 @@
 }
 
 .binary_sensor {
-    background-color: #03a9f4; /*#4caf50 green*/
+    background-color: #03a9f4;
 }
 
 .device_tracker {
@@ -93,9 +59,49 @@
     background-color: #607d8b;
 }
 
+.name, .extra {
+    height: 34px;
+    line-height: 34px;
+    text-overflow: clip;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.state, .state-disabled, .state-nan, .state-disabled-nan {
+    height: 52px;
+    line-height: 52px;
+}
+
+.state, .state-disabled {
+    font-size: 44px;
+}
+
+.state-nan, .state-disabled-nan {
+    font-size: 36px;
+}
+
+.state-disabled, .state-disabled-nan {
+    color: rgba(230,230,230,0.5);
+}
+
+.unit {
+    font-size: 10px
+}
+
+::-webkit-scrollbar {
+    display:none;
+}
+
+body {
+    background-color: black;
+    color: white;
+    font-family: Helvetica;
+    -webkit-user-select: none;
+}
+
     </style>
 </head>
-<body bgcolor="black" text="white" style="-webkit-user-select:none; font-family:Helvetica;">
+<body>
     <script>
 
 function httpRequest(url, callback, body, headers) {
@@ -210,6 +216,15 @@ function handleStates(entities) {
         return index1 == index2 ? x.attributes.friendly_name.localeCompare(y.attributes.friendly_name) : (index1 - index2);
     });
 
+    // Adjust grid width
+    var clientWidth = document.documentElement.clientWidth;
+    var count = (clientWidth - 11 - 5) / 126;
+    count = parseInt(count);
+    var width = (clientWidth - 22 - (count - 1) * 6) / count;
+    width = Math.floor(width * 10) / 10;
+    document.styleSheets[1].cssRules[0].style.width = width + 'px';
+    //console.log('clientWidth:' + clientWidth + ' count:' + count + ' width:' + width);
+
     // Generate entities
     var grids = '';
     for (var i in entities) {
@@ -244,15 +259,7 @@ function generateEntity(entity) {
         }
     }
 
-    var clientWidth = document.documentElement.clientWidth;
-    var count = (clientWidth - 11 - 5) / 126;
-    count = parseInt(count);
-    if (count < 3) count = 3;
-    var width = (clientWidth - 22 - (count - 1) * 6) / count;
-    width = Math.floor(width * 10) / 10;
-    //console.log('clientWidth: ' + clientWidth + ' count: ' + count + ' width: ' + width);
-
-    var grid = '<div class="' + (state == 'unavailable' ? 'unavailable' : domain) + '" id="' + entity_id + '" style="width:' + width + 'px" onclick="clickEntity(this)">';
+    var grid = '<div class="' + (state == 'unavailable' ? 'unavailable' : domain) + '" id="' + entity_id + '" onclick="clickEntity(this)">';
     grid += '<div class="name">' + attributes.friendly_name + '</div>';
     if ((domain == 'sensor' && attributes.mdicon == null) || domain == 'climate') {
         if (domain == 'climate') {
@@ -324,7 +331,7 @@ function clickEntity(element) {
             alert('Error on ' + action + ' ' + entity_id);
             _processing = false;
         }
-    }, '{"entity_id": "' + entity_id + '"}');
+    }, '{"entity_id":"' + entity_id + '"}');
 }
 
 // Respond to mobile browser
