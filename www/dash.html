@@ -314,12 +314,11 @@
             var domain = entity_id.split('.')[0];
             var state = entity.state;
             var attributes = entity.attributes;
+
             var disabled, extra;
-            if (state == 'off' || state == 'not_home' || state == 'unavailable' || state == 'closed' || state == 'docked') {
-                extra = null;
+            if (state == 'off' || state == 'not_home' || state == 'unavailable' || state == 'closed' || state == 'docked' || state == 'low') {
                 disabled = '-disabled';
-                if (domain == 'binary_sensor')
-                    icon = 'minus-circle-outline';
+                extra = null;
             } else {
                 disabled = '';
                 if (attributes.hasOwnProperty('dashboard_static_text_attribute')) {
@@ -338,7 +337,8 @@
             if (domain != 'sensor' && domain != 'binary_sensor' && domain != 'device_tracker')
                 grid += ' onclick="handleClick(this)"';
             grid += '><div class="name">' + attributes.friendly_name + '</div>';
-            if ((domain == 'sensor' && attributes.mdicon == null) || domain == 'climate') {
+
+            if ((domain == 'sensor' && attributes.mdicon == null) || domain == 'climate') { // TODO: Replace mdicon checking to another way
                 if (domain == 'climate') {
                     state = attributes.current_temperature;
                 } else if (_STATE_MAPS.hasOwnProperty(state)) {
@@ -356,6 +356,8 @@
                 var icon = attributes.icon;
                 if (icon && icon.startsWith('mdi:'))
                     icon = icon.slice(4);
+                // else if (domain == 'binary_sensor' && disabled != '')
+                //     icon = 'minus-circle-outline';
                 else
                     icon = _DOMAIN_ICONS[domain];
 
