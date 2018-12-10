@@ -158,7 +158,6 @@
 
             // WebSocket loading
             var url = (location.protocol == 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/api/websocket'
-            console.log(new Date().toLocaleTimeString() + ': ' + url);
             _ws = new WebSocket(url);
             _ws.addEventListener('open', handleOpen);
             _ws.onmessage = handleMessage;
@@ -287,11 +286,6 @@
         }
 
         function handleClick(element) {
-            entity_id = element.id;
-            var domain = entity_id.split('.')[0];
-            if (domain == 'sensor' || domain == 'binary_sensor' || domain == 'device_tracker')
-                return;
-
             if (_processing) {
                 console.log('Skip processing: ' + entity_id);
                 return;
@@ -300,6 +294,8 @@
 
             element.style = "animation: loading 1s infinite alternate";
 
+            entity_id = element.id;
+            var domain = entity_id.split('.')[0];
             var state = element.children[1];
             var disabled = state.className == 'state-disabled';
             if (domain == 'cover')
@@ -338,8 +334,10 @@
                 }
             }
 
-            var grid = '<div class="' + (state == 'unavailable' ? 'unavailable' : domain) + '" id="' + entity_id + '" onclick="handleClick(this)">';
-            grid += '<div class="name">' + attributes.friendly_name + '</div>';
+            var grid = '<div class="' + (state == 'unavailable' ? 'unavailable' : domain) + '" id="' + entity_id + '"';
+            if (domain != 'sensor' && domain != 'binary_sensor' && domain != 'device_tracker')
+                grid += ' onclick="handleClick(this)"';
+            grid += '><div class="name">' + attributes.friendly_name + '</div>';
             if ((domain == 'sensor' && attributes.mdicon == null) || domain == 'climate') {
                 if (domain == 'climate') {
                     state = attributes.current_temperature;
