@@ -21,7 +21,7 @@
         .unavailable {
             width: 120px;
             height: 120px;
-            margin: 3px;
+            margin: 2px;
             float: left;
             color: white;
             text-align: center;
@@ -121,7 +121,7 @@
         }
 
         body {
-            margin: 3px;
+            margin: 0px;
             background-color: black;
             color: white;
             font-family: Helvetica;
@@ -149,12 +149,11 @@
 
             // Adjust grid width
             var clientWidth = document.documentElement.clientWidth;
-            var count = (clientWidth - 12 + 6) / 126;
-            count = parseInt(count);
-            var width = (clientWidth - 12 - (count - 1) * 6) / count;
+            var count = Math.floor(clientWidth / 124);
+            var width = (clientWidth - count * 4) / count;
             width = Math.floor(width * 10) / 10;
             document.styleSheets[1].cssRules[0].style.width = width + 'px';
-            //console.log('clientWidth:' + clientWidth + ' count:' + count + ' width:' + width);
+            //alert('clientWidth:' + clientWidth + ' count:' + count + ' width:' + width);
 
             // WebSocket loading
             var url = (location.protocol == 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/api/websocket'
