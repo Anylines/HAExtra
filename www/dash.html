@@ -6,7 +6,6 @@
     <meta id="viewport" name="viewport" />
     <link href="https://cdn.bootcss.com/MaterialDesign-Webfont/3.2.89/css/materialdesignicons.min.css" rel="stylesheet">
     <style>
-
 .binary_sensor, .climate, .cover, .device_tracker, .fan, .group, .light, .media_player, .sensor, .switch, .vacuum, .unavailable {
     width: 120px;
     height: 120px;
@@ -100,61 +99,14 @@ body {
     -webkit-user-select: none;
 }
 
+@keyframes loading {
+    100% {background: #607d8b;}
+}
+
     </style>
-</head>
-<body>
     <script>
 
-function httpRequest(url, callback, body, headers) {
-    var req = new XMLHttpRequest();
-    req.onreadystatechange = function() {
-        try {
-            if(req.readyState == 4) {
-                if(req.status == 200) {
-                    var text = req.responseText;
-                    if(callback) callback(text);
-                } else {
-                    if(callback) callback();
-                }
-            }
-        }
-        catch(e) {
-            req.abort();
-            console.log('Exception:' + e);
-            if(callback) callback();
-        }
-    };
-    req.open((body ? 'POST' : 'GET'), url, true);
-    if(headers) for(var key in headers) req.setRequestHeader(key, headers[key]);
-    req.send(body);
-    return req;
-}
-
-function haRequest(api, callback, body, headers) {
-    var url;
-    var search = location.search;
-    if (search.startsWith('?http')) {
-        var parts = search.slice(1).split('_');
-        if (parts.length < 3) {
-            document.write('Error in url parameter! e.g. http_xxx.xxx.xxx.xxx_8123_password');
-            return
-        }
-        url = parts[0] + '://' + parts[1] + ':' + parts[2] + '/api/' + api
-        if (parts.length > 3)
-            url += '?api_password=' + parts[3]
-    } else {
-        url = location.protocol + '//' + location.host + '/api/' + api
-        if (search.startsWith('?'))
-            url += '?api_password=' + search.slice(1)
-    }
-
-    console.log(new Date().toLocaleTimeString() + ': ' + url);
-    httpRequest(url, function(text) {
-        if (callback) callback(text ? JSON.parse(text) : null);
-    }, body, headers);
-}
-
-var domain_icons = {
+_DOMAIN_ICONS = {
     'sensor': 'flower',
     'binary_sensor': 'bullseye',
     'device_tracker': 'account',
@@ -171,7 +123,7 @@ var domain_icons = {
     //'group': 'account-group',
 };
 
-var state_map = {
+_STATE_MAPS = {
     'off': '关闭',
     'on': '开启',
 
@@ -196,11 +148,11 @@ var state_map = {
 
 function handleStates(entities) {
     if (entities == null) {
-        document.write('Error on request states! e.g. http://xxx.xxx.xxx.xxx:8123/local/dash.html?password');
+        //document.body.innerText = 'Error on request states!';
         return;
     }
 
-    var domains = Object.keys(domain_icons);
+    var domains = Object.keys(_DOMAIN_ICONS);
 
     // Remove invalid entities
     for (var j = entities.length - 1; j >= 0; j--) {
@@ -216,15 +168,6 @@ function handleStates(entities) {
         var index2 = domains.indexOf(y.entity_id.split('.')[0]);
         return index1 == index2 ? x.attributes.friendly_name.localeCompare(y.attributes.friendly_name) : (index1 - index2);
     });
-
-    // Adjust grid width
-    var clientWidth = document.documentElement.clientWidth;
-    var count = (clientWidth - 12 + 6) / 126;
-    count = parseInt(count);
-    var width = (clientWidth - 12 - (count - 1) * 6) / count;
-    width = Math.floor(width * 10) / 10;
-    document.styleSheets[1].cssRules[0].style.width = width + 'px';
-    //console.log('clientWidth:' + clientWidth + ' count:' + count + ' width:' + width);
 
     // Generate entities
     var grids = '';
@@ -251,21 +194,21 @@ function generateEntity(entity) {
         if (attributes.hasOwnProperty('dashboard_static_text_attribute')) {
             extra = attributes[attributes.dashboard_static_text_attribute];
         } else if (domain == 'climate') {
-            extra = (state_map.hasOwnProperty(state) ? state_map[state] : state) + ' ' + attributes.temperature + '°C';
+            extra = (_STATE_MAPS.hasOwnProperty(state) ? _STATE_MAPS[state] : state) + ' ' + attributes.temperature + '°C';
         } else if (domain == 'fan') {
             var speed = attributes.speed.toLowerCase();
-            extra = state_map.hasOwnProperty(speed) ? state_map[speed] : speed.replace("level", "档位");
+            extra = _STATE_MAPS.hasOwnProperty(speed) ? _STATE_MAPS[speed] : speed.replace("level", "档位");
         } else {
             extra = null;
         }
     }
 
-    var grid = '<div class="' + (state == 'unavailable' ? 'unavailable' : domain) + '" id="' + entity_id + '" onclick="clickEntity(this)">';
+    var grid = '<div class="' + (state == 'unavailable' ? 'unavailable' : domain) + '" id="' + entity_id + '" onclick="handleClick(this)">';
     grid += '<div class="name">' + attributes.friendly_name + '</div>';
     if ((domain == 'sensor' && attributes.mdicon == null) || domain == 'climate') {
         if (domain == 'climate') {
             state = attributes.current_temperature;
-        } else if (state_map.hasOwnProperty(state)) {
+        } else if (_STATE_MAPS.hasOwnProperty(state)) {
             state = states[state];
         }
 
@@ -281,7 +224,7 @@ function generateEntity(entity) {
         if (icon && icon.startsWith('mdi:'))
             icon = icon.slice(4);
         else
-            icon = domain_icons[domain];
+            icon = _DOMAIN_ICONS[domain];
 
         grid += '<div class="state' + disabled + '">';
         grid += '<i class="mdi mdi-' + icon + '"></i>';
@@ -295,58 +238,112 @@ function generateEntity(entity) {
     return grid;
 }
 
-var _processing = false;
-function clickEntity(element) {
-    if (_processing)
-        return;
-    _processing = true;
+_ws = null;
+_wsid = 4;
 
+_processing = false;
+function handleClick(element) {
     entity_id = element.id;
     var domain = entity_id.split('.')[0];
     if (domain == 'sensor' || domain == 'binary_sensor' || domain == 'device_tracker')
         return;
 
+    if (_processing) {
+        console.log('Skip processing: ' + entity_id);
+        return;
+    }
+    _processing = true;
+
+    element.style = "animation: loading 1s infinite alternate";
+
     var state = element.children[1];
     var disabled = state.className == 'state-disabled';
     if (domain == 'cover')
-        var action = disabled ? 'open_cover' : 'close_cover';
+        var service = disabled ? 'open_cover' : 'close_cover';
     else
-        var action = disabled ? 'turn_on' : 'turn_off';
+        var service = disabled ? 'turn_on' : 'turn_off';
 
-    haRequest('services/' + domain + '/' + action, function(result) {
-        if (result != null) {
-            setTimeout(function() { // Delay to fetch correct fan/climate state
-                haRequest('states/' + entity_id, function(entity) {
-                    if (entity != null) {
-                        var grid = generateEntity(entity);
-                        var template = document.createElement('template');
-                        template.innerHTML = grid;
-                        element.parentNode.replaceChild(template.content.firstChild, element);
-                    } else {
-                        alert('Error on refresh ' + entity_id);
-                    }
-                    _processing = false;
-                });
-            }, (domain == 'fan') ? 1000 : ((domain == 'climate') ? 15000 : 200));
+    console.log('Processing: ' + domain + '/' + service + '/' + entity_id);
+    _ws.send('{"id": ' + _wsid++ + ', "type": "call_service", "domain":"' + domain + '","service":"' + service + '","service_data":{"entity_id":"' + entity_id + '"}}');
+
+    setTimeout('_processing = false', 1000);
+}
+
+function handleEvent(entity) {
+    var element = document.getElementById(entity.entity_id);
+    if (element == null) {
+        var domain = entity.entity_id.split('.')[0];
+        if (_DOMAIN_ICONS.hasOwnProperty(domain)) {
+            console.log('Entity not found: ' + entity.entity_id);
+            setTimeout('load()', 2000);
         } else {
-            alert('Error on ' + action + ' ' + entity_id);
-            _processing = false;
+            console.log('Skip entity: ' + entity.entity_id);
         }
-    }, '{"entity_id":"' + entity_id + '"}');
+        return;
+    }
+
+    var grid = generateEntity(entity);
+    var template = document.createElement('template');
+    template.innerHTML = grid;
+    element.parentNode.replaceChild(template.content.firstChild, element);
+    console.log('Update entity: ' + entity.attributes.friendly_name);
 }
 
-// Respond to mobile browser
-if (navigator.userAgent.match('Mobile') != null) {
-    var viewport = document.getElementById('viewport');
-    viewport.setAttribute('content', 'width=device-width, initial-scale=1');
+function handleMessage(message) {
+    var json = JSON.parse(message.data);
+    switch (json.type) {
+    case 'result':
+        handleStates(json.result);
+        break;
+
+    case 'event':
+        handleEvent(json.event.data.new_state);
+        break;
+
+    case 'auth_invalid':
+        document.body.innerHTML = 'Auth invalid! Please access <a href=' + location.protocol + '//' + location.host + '>Home Page</a> first.';
+        break;
+
+    default:
+        console.log(json);
+        break;
+    }
 }
 
-// Initial request
-haRequest('states', handleStates);
+// On page load
+function load() {
+    // Respond to mobile browser
+    if (navigator.userAgent.match('Mobile') != null) {
+        var viewport = document.getElementById('viewport');
+        viewport.setAttribute('content', 'width=device-width, initial-scale=1');
+    }
 
-// Refresh per minute
-setInterval("haRequest('states', handleStates)", 60000);
+    // Adjust grid width
+    var clientWidth = document.documentElement.clientWidth;
+    var count = (clientWidth - 12 + 6) / 126;
+    count = parseInt(count);
+    var width = (clientWidth - 12 - (count - 1) * 6) / count;
+    width = Math.floor(width * 10) / 10;
+    document.styleSheets[1].cssRules[0].style.width = width + 'px';
+    //console.log('clientWidth:' + clientWidth + ' count:' + count + ' width:' + width);
+
+    // WebSocket loading
+    var url = (location.protocol == 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/api/websocket'
+    console.log(new Date().toLocaleTimeString() + ': ' + url);
+    _ws = new WebSocket(url);
+    _ws.addEventListener('open', function (event) {
+        var access_token = JSON.parse(localStorage.hassTokens).access_token;
+        if (access_token != null) {
+            _ws.send('{"type": "auth", "access_token": "' + access_token + '"}');
+        }
+        _ws.send('{"id": 2, "type": "subscribe_events", "event_type": "state_changed"}');
+        _ws.send('{"id": 3, "type": "get_states"}');
+    });
+    _ws.onmessage = handleMessage;
+}
 
     </script>
+</head>
+<body onload="load()">
 </body>
 </html>
