@@ -310,29 +310,29 @@
         };
 
         _BINARY_SENSOR_ICONS = {
-            // 'battery': ['minus-circle-outline', 'bullseye'],
-            // 'cold': ['minus-circle-outline', 'bullseye'],
-            // 'connectivity': ['minus-circle-outline', 'bullseye'],
-            // 'door': ['minus-circle-outline', 'bullseye'],
-            // 'garage_door': ['minus-circle-outline', 'bullseye'],
-            'gas': ['gas-cylinder', 'alert'],
-            // 'heat': ['minus-circle-outline', 'bullseye'],
+            'battery': ['battery', 'battery-outline'],
+            'cold': ['thermometer', 'snowflake'],
+            'connectivity': ['server-network-off', 'server-network'],
+            'door': ['door-closed', 'door-open'],
+            'garage_door': ['garage', 'garage-open'],
+            'gas': ['shield-check', 'alert'],
+            'power': ['shield-check', 'alert'],
+            'problem': ['shield-check', 'alert'],
+            'safety': ['shield-check', 'alert'],
+            'smoke': ['shield-check', 'alert'],
+            'heat': ['thermometer', 'fire'],
             'light': ['brightness-5', 'brightness-7'],
-            // 'lock': ['minus-circle-outline', 'bullseye'],
+            'lock': ['lock', 'lock-open'],
             'moisture': ['water-off', 'water'],
             'motion': ['walk', 'run'],
-            // 'moving': ['minus-circle-outline', 'bullseye'],
-            // 'occupancy': ['minus-circle-outline', 'bullseye'],
-            'opening': ['square', 'border-all-variant'],
-            // 'plug': ['minus-circle-outline', 'bullseyebullseye'],
-            'power': ['shield-check', 'alert'],
-            // 'presence': ['minus-circle-outline', 'bullseye'],
-            // 'problem': ['minus-circle-outline', 'bullseye'],
-            'safety': ['shield-check', 'alert'],
-            'smoke': ['smoking-off', 'smoking'],
-            // 'sound': ['minus-circle-outline', 'bullseye'],
-            // 'vibration': ['minus-circle-outline', 'bullseye'],
-            // 'window': ['minus-circle-outline', 'bullseye'],
+            'occupancy': ['home-outline', 'home'],
+            'opening': ['square', 'square-outline'],
+            'plug': ['power-plug-off', 'power-plug'],
+            'presence': ['home-outline', 'home'],
+            'sound': ['music-note-off', 'music-note'],
+            'vibration': ['crop-portrait', 'vibrate'],
+            'window': ['window-closed', 'window-open'],
+            'default': ['radiobox-blank', 'checkbox-marked-circle'],
         }
 
         function generateEntity(entity) {
@@ -383,11 +383,13 @@
                 if (icon && icon.startsWith('mdi:')) {
                     icon = icon.slice(4);
                 }
-                else {
-                    if (domain == 'binary_sensor' && _BINARY_SENSOR_ICONS.hasOwnProperty(attributes.device_class))
-                        icon = _BINARY_SENSOR_ICONS[attributes.device_class][disabled == '' ? 1 : 0];
-                    else
-                        icon = _DOMAIN_ICONS[domain];
+                else if (domain == 'binary_sensor') {
+                    var device_class = attributes.device_class;
+                    if (!_BINARY_SENSOR_ICONS.hasOwnProperty(device_class))
+                        device_class = 'default';
+                    icon = _BINARY_SENSOR_ICONS[device_class][disabled == '' ? 1 : 0];
+                } else {
+                    icon = _DOMAIN_ICONS[domain];
                 }
 
                 grid += '<div class="state' + disabled + '">';
