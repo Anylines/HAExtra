@@ -171,6 +171,8 @@
                     if (access_token) {
                         _ws.send('{"type": "auth", "access_token": "' + access_token + '"}');
                     }
+                } else if (location.hash.startsWith('#')) {
+                    _ws.send('{"type": "auth", "api_password": "' + location.hash.slice(1) + '"}');
                 }
                 _ws.send('{"id": 2, "type": "subscribe_events", "event_type": "state_changed"}');
                 _ws.send('{"id": 3, "type": "get_states"}');
