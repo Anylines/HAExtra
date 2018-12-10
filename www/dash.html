@@ -198,7 +198,7 @@
             'binary_sensor': 'bullseye',
             'device_tracker': 'account',
 
-            'light': 'circle-outline',
+            'light': 'lightbulb',
             'switch': 'light-switch',
 
             'fan': 'fan',
@@ -222,7 +222,7 @@
             for (var j = entities.length - 1; j >= 0; j--) {
                 var entity = entities[j];
                 var domain = entity.entity_id.split('.')[0];
-                if (domains.indexOf(domain) == -1 || entity.attributes.hidden == true || entity.attributes.hasOwnProperty('friendly_name') == false)
+                if (domains.indexOf(domain) == -1 || entity.attributes.hidden || !entity.attributes.hasOwnProperty('friendly_name'))
                     entities.splice(j, 1);
             }
 
