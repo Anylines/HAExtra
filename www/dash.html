@@ -106,6 +106,64 @@ body {
     </style>
     <script>
 
+_ws = null;
+_wsid = 4;
+_processing = false;
+
+function load() {
+    // Respond to mobile browser
+    if (navigator.userAgent.match('Mobile') != null) {
+        var viewport = document.getElementById('viewport');
+        viewport.setAttribute('content', 'width=device-width, initial-scale=1');
+    }
+
+    // Adjust grid width
+    var clientWidth = document.documentElement.clientWidth;
+    var count = (clientWidth - 12 + 6) / 126;
+    count = parseInt(count);
+    var width = (clientWidth - 12 - (count - 1) * 6) / count;
+    width = Math.floor(width * 10) / 10;
+    document.styleSheets[1].cssRules[0].style.width = width + 'px';
+    //console.log('clientWidth:' + clientWidth + ' count:' + count + ' width:' + width);
+
+    // WebSocket loading
+    var url = (location.protocol == 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/api/websocket'
+    console.log(new Date().toLocaleTimeString() + ': ' + url);
+    _ws = new WebSocket(url);
+    _ws.addEventListener('open', handleOpen);
+    _ws.onmessage = handleMessage;
+}
+
+function handleOpen(message) {
+    var access_token = JSON.parse(localStorage.hassTokens).access_token;
+    if (access_token != null) {
+        _ws.send('{"type": "auth", "access_token": "' + access_token + '"}');
+    }
+    _ws.send('{"id": 2, "type": "subscribe_events", "event_type": "state_changed"}');
+    _ws.send('{"id": 3, "type": "get_states"}');
+}
+
+function handleMessage(message) {
+    var json = JSON.parse(message.data);
+    switch (json.type) {
+    case 'result':
+        handleStates(json.result);
+        break;
+
+    case 'event':
+        handleEvent(json.event.data.new_state);
+        break;
+
+    case 'auth_invalid':
+        document.body.innerHTML = 'Auth invalid! Please access <a href=' + location.protocol + '//' + location.host + '>Home Page</a> first.';
+        break;
+
+    default:
+        console.log(json);
+        break;
+    }
+}
+
 _DOMAIN_ICONS = {
     'sensor': 'flower',
     'binary_sensor': 'bullseye',
@@ -178,6 +236,53 @@ function handleStates(entities) {
     document.body.innerHTML = grids;
 }
 
+function handleEvent(entity) {
+    var element = document.getElementById(entity.entity_id);
+    if (element == null) {
+        var domain = entity.entity_id.split('.')[0];
+        if (_DOMAIN_ICONS.hasOwnProperty(domain)) {
+            console.log('Entity not found: ' + entity.entity_id);
+            setTimeout('load()', 2000);
+        } else {
+            console.log('Skip entity: ' + entity.entity_id);
+        }
+        return;
+    }
+
+    var grid = generateEntity(entity);
+    var template = document.createElement('template');
+    template.innerHTML = grid;
+    element.parentNode.replaceChild(template.content.firstChild, element);
+    //console.log('Update entity: ' + entity.attributes.friendly_name);
+}
+
+function handleClick(element) {
+    entity_id = element.id;
+    var domain = entity_id.split('.')[0];
+    if (domain == 'sensor' || domain == 'binary_sensor' || domain == 'device_tracker')
+        return;
+
+    if (_processing) {
+        console.log('Skip processing: ' + entity_id);
+        return;
+    }
+    _processing = true;
+
+    element.style = "animation: loading 1s infinite alternate";
+
+    var state = element.children[1];
+    var disabled = state.className == 'state-disabled';
+    if (domain == 'cover')
+        var service = disabled ? 'open_cover' : 'close_cover';
+    else
+        var service = disabled ? 'turn_on' : 'turn_off';
+
+    console.log('Processing: ' + domain + '/' + service + '/' + entity_id);
+    _ws.send('{"id": ' + _wsid++ + ', "type": "call_service", "domain":"' + domain + '","service":"' + service + '","service_data":{"entity_id":"' + entity_id + '"}}');
+
+    setTimeout('_processing = false', 1000);    // Avoid misoperation
+}
+
 function generateEntity(entity) {
     var entity_id = entity.entity_id;
     var domain = entity_id.split('.')[0];
@@ -236,110 +341,6 @@ function generateEntity(entity) {
     }
     grid += '</div> ';
     return grid;
-}
-
-_ws = null;
-_wsid = 4;
-
-_processing = false;
-function handleClick(element) {
-    entity_id = element.id;
-    var domain = entity_id.split('.')[0];
-    if (domain == 'sensor' || domain == 'binary_sensor' || domain == 'device_tracker')
-        return;
-
-    if (_processing) {
-        console.log('Skip processing: ' + entity_id);
-        return;
-    }
-    _processing = true;
-
-    element.style = "animation: loading 1s infinite alternate";
-
-    var state = element.children[1];
-    var disabled = state.className == 'state-disabled';
-    if (domain == 'cover')
-        var service = disabled ? 'open_cover' : 'close_cover';
-    else
-        var service = disabled ? 'turn_on' : 'turn_off';
-
-    console.log('Processing: ' + domain + '/' + service + '/' + entity_id);
-    _ws.send('{"id": ' + _wsid++ + ', "type": "call_service", "domain":"' + domain + '","service":"' + service + '","service_data":{"entity_id":"' + entity_id + '"}}');
-
-    setTimeout('_processing = false', 1000);
-}
-
-function handleEvent(entity) {
-    var element = document.getElementById(entity.entity_id);
-    if (element == null) {
-        var domain = entity.entity_id.split('.')[0];
-        if (_DOMAIN_ICONS.hasOwnProperty(domain)) {
-            console.log('Entity not found: ' + entity.entity_id);
-            setTimeout('load()', 2000);
-        } else {
-            console.log('Skip entity: ' + entity.entity_id);
-        }
-        return;
-    }
-
-    var grid = generateEntity(entity);
-    var template = document.createElement('template');
-    template.innerHTML = grid;
-    element.parentNode.replaceChild(template.content.firstChild, element);
-    console.log('Update entity: ' + entity.attributes.friendly_name);
-}
-
-function handleMessage(message) {
-    var json = JSON.parse(message.data);
-    switch (json.type) {
-    case 'result':
-        handleStates(json.result);
-        break;
-
-    case 'event':
-        handleEvent(json.event.data.new_state);
-        break;
-
-    case 'auth_invalid':
-        document.body.innerHTML = 'Auth invalid! Please access <a href=' + location.protocol + '//' + location.host + '>Home Page</a> first.';
-        break;
-
-    default:
-        console.log(json);
-        break;
-    }
-}
-
-// On page load
-function load() {
-    // Respond to mobile browser
-    if (navigator.userAgent.match('Mobile') != null) {
-        var viewport = document.getElementById('viewport');
-        viewport.setAttribute('content', 'width=device-width, initial-scale=1');
-    }
-
-    // Adjust grid width
-    var clientWidth = document.documentElement.clientWidth;
-    var count = (clientWidth - 12 + 6) / 126;
-    count = parseInt(count);
-    var width = (clientWidth - 12 - (count - 1) * 6) / count;
-    width = Math.floor(width * 10) / 10;
-    document.styleSheets[1].cssRules[0].style.width = width + 'px';
-    //console.log('clientWidth:' + clientWidth + ' count:' + count + ' width:' + width);
-
-    // WebSocket loading
-    var url = (location.protocol == 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/api/websocket'
-    console.log(new Date().toLocaleTimeString() + ': ' + url);
-    _ws = new WebSocket(url);
-    _ws.addEventListener('open', function (event) {
-        var access_token = JSON.parse(localStorage.hassTokens).access_token;
-        if (access_token != null) {
-            _ws.send('{"type": "auth", "access_token": "' + access_token + '"}');
-        }
-        _ws.send('{"id": 2, "type": "subscribe_events", "event_type": "state_changed"}');
-        _ws.send('{"id": 3, "type": "get_states"}');
-    });
-    _ws.onmessage = handleMessage;
 }
 
     </script>
