@@ -29,16 +29,19 @@
             font-size: 11pt;
         }
 
-        .climate:hover,
-        .cover:hover,
-        .fan:hover,
-        .group:hover,
-        .light:hover,
-        .media_player:hover,
-        .switch:hover,
-        .vacuum:hover {
-            background-color: #4caf50;
-            cursor: pointer;
+        @media (hover: hover) {
+
+            .climate:hover,
+            .cover:hover,
+            .fan:hover,
+            .group:hover,
+            .light:hover,
+            .media_player:hover,
+            .switch:hover,
+            .vacuum:hover {
+                background-color: #4caf50;
+                cursor: pointer;
+            }
         }
 
         .binary_sensor {
@@ -155,41 +158,42 @@
             document.styleSheets[1].cssRules[0].style.width = width + 'px';
             //alert('clientWidth:' + clientWidth + ' count:' + count + ' width:' + width);
 
-            // WebSocket loading
+            connect();
+        }
+
+        function connect() {
             var url = (location.protocol == 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/api/websocket'
+            console.log('Connect to ' + url);
             _ws = new WebSocket(url);
-            _ws.addEventListener('open', handleOpen);
-            _ws.onmessage = handleMessage;
-        }
-
-        function handleOpen(message) {
-            var access_token = JSON.parse(localStorage.hassTokens).access_token;
-            if (access_token != null) {
-                _ws.send('{"type": "auth", "access_token": "' + access_token + '"}');
-            }
-            _ws.send('{"id": 2, "type": "subscribe_events", "event_type": "state_changed"}');
-            _ws.send('{"id": 3, "type": "get_states"}');
-        }
-
-        function handleMessage(message) {
-            var json = JSON.parse(message.data);
-            switch (json.type) {
-                case 'result':
-                    handleStates(json.result);
-                    break;
-
-                case 'event':
-                    handleEvent(json.event.data.new_state);
-                    break;
-
-                case 'auth_invalid':
-                    document.body.innerHTML = 'Auth invalid! Please access <a href=' + location.protocol + '//' + location.host + '>Home Page</a> first.';
-                    break;
-
-                default:
-                    console.log(json);
-                    break;
-            }
+            _ws.onopen = function () {
+                var access_token = JSON.parse(localStorage.hassTokens).access_token;
+                if (access_token != null) {
+                    _ws.send('{"type": "auth", "access_token": "' + access_token + '"}');
+                }
+                _ws.send('{"id": 2, "type": "subscribe_events", "event_type": "state_changed"}');
+                _ws.send('{"id": 3, "type": "get_states"}');
+            };
+            _ws.onclose = function () {
+                console.log('Connection closed!');
+                setTimeout('connect()', 5000);
+            };
+            _ws.onmessage = function (message) {
+                var json = JSON.parse(message.data);
+                switch (json.type) {
+                    case 'result':
+                        handleStates(json.result);
+                        break;
+                    case 'event':
+                        handleEvent(json.event.data.new_state);
+                        break;
+                    case 'auth_invalid':
+                        document.body.innerHTML = 'Auth invalid! Please access <a href=' + location.protocol + '//' + location.host + '>Home Page</a> first.';
+                        break;
+                    default:
+                        console.log(json);
+                        break;
+                }
+            };
         }
 
         _DOMAIN_ICONS = {
@@ -247,7 +251,7 @@
                 var domain = entity.entity_id.split('.')[0];
                 if (_DOMAIN_ICONS.hasOwnProperty(domain)) {
                     console.log('Entity not found: ' + entity.entity_id);
-                    setTimeout('load()', 2000);
+                    setTimeout('connect()', 2000);
                 } else {
                     console.log('Skip entity: ' + entity.entity_id);
                 }
