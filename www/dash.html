@@ -210,29 +210,6 @@
             //'group': 'account-group',
         };
 
-        _STATE_MAPS = {
-            'off': '关闭',
-            'on': '开启',
-
-            'auto': '自动',
-            'low': '低速',
-            'medium': '中速',
-            'middle': '中速',
-            'high': '高速',
-
-            'strong': '高速',
-            'silent': '静音',
-            'interval': '间歇',
-
-            'cool': '制冷',
-            'heat': '制热',
-            'dry': '除湿',
-            'fan': '送风',
-
-            'favorite': '最爱',
-            'unavailable': '不可用',
-        };
-
         function handleStates(entities) {
             if (entities == null) {
                 //document.body.innerText = 'Error on request states!';
@@ -309,6 +286,55 @@
             setTimeout('_processing = false', 1000);    // Avoid misoperation
         }
 
+        _STATE_MAPS = {
+            'off': '关闭',
+            'on': '开启',
+
+            'auto': '自动',
+            'low': '低速',
+            'medium': '中速',
+            'middle': '中速',
+            'high': '高速',
+
+            'strong': '高速',
+            'silent': '静音',
+            'interval': '间歇',
+
+            'cool': '制冷',
+            'heat': '制热',
+            'dry': '除湿',
+            'fan': '送风',
+
+            'favorite': '最爱',
+            'unavailable': '不可用',
+        };
+
+        _BINARY_SENSOR_ICONS = {
+            // 'battery': ['minus-circle-outline', 'bullseye'],
+            // 'cold': ['minus-circle-outline', 'bullseye'],
+            // 'connectivity': ['minus-circle-outline', 'bullseye'],
+            // 'door': ['minus-circle-outline', 'bullseye'],
+            // 'garage_door': ['minus-circle-outline', 'bullseye'],
+            // 'gas': ['minus-circle-outline', 'bullseye'],
+            // 'heat': ['minus-circle-outline', 'bullseye'],
+            // 'light': ['minus-circle-outline', 'bullseye'],
+            // 'lock': ['minus-circle-outline', 'bullseye'],
+            // 'moisture': ['minus-circle-outline', 'bullseye'],
+            // 'motion': ['minus-circle-outline', 'bullseye'],
+            // 'moving': ['minus-circle-outline', 'bullseye'],
+            // 'occupancy': ['minus-circle-outline', 'bullseye'],
+            'opening': ['square', 'border-all-variant'],
+            // 'plug': ['minus-circle-outline', 'bullseyebullseye'],
+            // 'power': ['minus-circle-outline', 'bullseye'],
+            // 'presence': ['minus-circle-outline', 'bullseye'],
+            // 'problem': ['minus-circle-outline', 'bullseye'],
+            // 'safety': ['minus-circle-outline', 'bullseye'],
+            // 'smoke': ['minus-circle-outline', 'bullseye'],
+            // 'sound': ['minus-circle-outline', 'bullseye'],
+            // 'vibration': ['minus-circle-outline', 'bullseye'],
+            // 'window': ['minus-circle-outline', 'bullseye'],
+        }
+
         function generateEntity(entity) {
             var entity_id = entity.entity_id;
             var domain = entity_id.split('.')[0];
@@ -354,12 +380,15 @@
                     grid += '<span class="unit">' + unit + '</span>'
             } else {
                 var icon = attributes.icon;
-                if (icon && icon.startsWith('mdi:'))
+                if (icon && icon.startsWith('mdi:')) {
                     icon = icon.slice(4);
-                // else if (domain == 'binary_sensor' && disabled != '')
-                //     icon = 'minus-circle-outline';
-                else
-                    icon = _DOMAIN_ICONS[domain];
+                }
+                else {
+                    if (domain == 'binary_sensor' && _BINARY_SENSOR_ICONS.hasOwnProperty(attributes.device_class))
+                        icon = _BINARY_SENSOR_ICONS[attributes.device_class][disabled == '' ? 1 : 0];
+                    else
+                        icon = _DOMAIN_ICONS[domain];
+                }
 
                 grid += '<div class="state' + disabled + '">';
                 grid += '<i class="mdi mdi-' + icon + '"></i>';
