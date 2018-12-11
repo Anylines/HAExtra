@@ -6,6 +6,12 @@ default_view:
   # - device_tracker.yphone
   # - device_tracker.zphone
   # - device_tracker.himedia
+  - sensor.fresher_co2
+  - sensor.bedroom_co2
+  - sensor.bedroom_temperature
+  - sensor.bedroom_humidity
+  - sensor.bedroom_pm25
+  - sensor.balcony_pm25
   - group.balcony
   - group.hallway
   - group.diningroom
@@ -17,14 +23,8 @@ default_view:
   - group.parents
   - group.kids
   - group.study
-  - group.office
+  #- group.office
   - group.outside
-  - sensor.fresher_co2
-  - sensor.bedroom_co2
-  - sensor.bedroom_temperature
-  - sensor.bedroom_humidity
-  - sensor.bedroom_pm25
-  - sensor.balcony_pm25
 
 Balcony:
   entities:
