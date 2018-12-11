@@ -180,9 +180,12 @@
         }
 
         function connect() {
-            var url = (location.protocol == 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/api/websocket';
+            if (location.search.startsWith('?ws'))
+                var url = location.search.slice(1);
+            else
+                var url = (location.protocol == 'https:' ? 'wss:' : 'ws:') + '//' + location.host;
             console.log('Connect to ' + url);
-            _ws = new WebSocket(url);
+            _ws = new WebSocket(url + '/api/websocket');
             _ws.onopen = function () {
                 if (localStorage.hassTokens) {
                     var access_token = JSON.parse(localStorage.hassTokens).access_token;
