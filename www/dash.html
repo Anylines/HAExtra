@@ -244,6 +244,15 @@
                 return;
             }
 
+            // Sort by group
+            if (location.hash) {
+                var html = generateGroup(entities, location.hash.slice(1));
+                if (html) {
+                    document.body.innerHTML = html;
+                    return;
+                }
+            }
+
             var domains = Object.keys(_DOMAIN_ICONS);
 
             // Remove invalid entities
@@ -262,12 +271,50 @@
             });
 
             // Generate entities
-            var grids = '';
+            var html = '';
             for (var i in entities) {
-                grids += generateEntity(entities[i]);
+                html += generateEntity(entities[i]);
             }
 
-            document.body.innerHTML = grids;
+            document.body.innerHTML = html;
+        }
+
+        function generateGroup(entities, group_id) {
+            function findEntity(entity_id) {
+                for (var i in entities) {
+                    var entity = entities[i];
+                    if (entity.entity_id == entity_id) {
+                        return entity;
+                    }
+                }
+                console.log('Entity id not found: ' + entity_id);
+                return null;
+            }
+
+            if (!group_id.startsWith('group.'))
+                    group_id = 'group.' + group_id;
+            var group = findEntity(group_id);
+            if (!group) {
+                return '';
+            }
+
+            console.log('Sort by ' + group_id);
+            var entity_ids = group.attributes.entity_id;
+            var html = '';
+            for (var i in entity_ids) {
+                var entity_id = entity_ids[i];
+                var domain = entity_id.split('.')[0];
+                if (domain == 'group') {
+                    html += generateGroup(entities, entity_id);
+                } else if (_DOMAIN_ICONS.hasOwnProperty(domain)) {
+                    var entity = findEntity(entity_id);
+                    if (entity && !entity.attributes.hidden && entity.attributes.hasOwnProperty('friendly_name')) {
+                        html += generateEntity(entity);
+                    }
+                }
+            }
+
+            return html;
         }
 
         function handleEvent(entity) {
