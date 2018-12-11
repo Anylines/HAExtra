@@ -180,7 +180,7 @@
         }
 
         function connect() {
-            var url = (location.protocol == 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/api/websocket'
+            var url = (location.protocol == 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/api/websocket';
             console.log('Connect to ' + url);
             _ws = new WebSocket(url);
             _ws.onopen = function () {
