@@ -165,7 +165,7 @@
             // Respond to mobile browser
             if (navigator.userAgent.match('Mobile') != null) {
                 var viewport = document.getElementById('viewport');
-                viewport.setAttribute('content', 'width=device-width, initial-scale=1');
+                viewport.setAttribute('content', 'width=device-width, initial-scale=1, user-scalable=no');
             }
 
             // Adjust grid width
@@ -181,8 +181,8 @@
 
         function connect() {
             var params = location.search.split('@');
-            if (params.length > 1)
-                var url = params[params.length - 1];
+            if (params.length > 1 && params[1].startsWith('ws'))
+                var url = params[1];
             else
                 var url = (location.protocol == 'https:' ? 'wss:' : 'ws:') + location.host;
             console.log('Connect to ' + url);
@@ -245,29 +245,63 @@
             }
 
             // Sort by group
+            var group_entity_ids = [];
             if (location.hash) {
-                var html = generateGroup(entities, location.hash.slice(1));
-                if (html) {
-                    document.body.innerHTML = html;
-                    return;
+                function findEntity(entity_id) {
+                    for (var i in entities) {
+                        var entity = entities[i];
+                        if (entity.entity_id == entity_id) {
+                            return entity;
+                        }
+                    }
+                    console.log('Entity id not found: ' + entity_id);
+                    return null;
                 }
+
+                function groupEntitiyIds(group_id) {
+                    var group = findEntity(group_id);
+                    if (group) {
+                        console.log('Sort by ' + group_id);
+                        var entity_ids = group.attributes.entity_id;
+                        for (var i in entity_ids) {
+                            var entity_id = entity_ids[i];
+                            if (entity_id.startsWith('group')) {
+                                groupEntitiyIds(entity_id);
+                            } else/* if (_DOMAIN_ICONS.hasOwnProperty(entity_id.split('.')[0]) && !entity.attributes.hidden)*/ {
+                                group_entity_ids.push(entity_id);
+                            }
+                        }
+                    }
+                }
+
+                var group_id = location.hash.slice(1);
+                if (!group_id.startsWith('group.'))
+                        group_id = 'group.' + group_id;
+                groupEntitiyIds(group_id);
             }
 
-            var domains = Object.keys(_DOMAIN_ICONS);
-
-            // Remove invalid entities
+            // Remove unsupport entities
             for (var j = entities.length - 1; j >= 0; j--) {
                 var entity = entities[j];
-                var domain = entity.entity_id.split('.')[0];
-                if (domains.indexOf(domain) == -1 || entity.attributes.hidden || !entity.attributes.hasOwnProperty('friendly_name'))
+                if (!_DOMAIN_ICONS.hasOwnProperty(entity.entity_id.split('.')[0]) || entity.attributes.hidden/* || !entity.attributes.hasOwnProperty('friendly_name')*/)
                     entities.splice(j, 1);
             }
 
-            // Sort entiries
+            // Sort entiries by domain+group order
+            var domains = Object.keys(_DOMAIN_ICONS);
             entities.sort(function (x, y) {
-                var index1 = domains.indexOf(x.entity_id.split('.')[0]);
-                var index2 = domains.indexOf(y.entity_id.split('.')[0]);
-                return index1 == index2 ? x.attributes.friendly_name.localeCompare(y.attributes.friendly_name) : (index1 - index2);
+                var entity_id1 = x.entity_id;
+                var entity_id2 = y.entity_id;
+                var index1 = domains.indexOf(entity_id1.split('.')[0]);
+                var index2 = domains.indexOf(entity_id2.split('.')[0]);
+                if (index1 == index2) {
+                    index1 = group_entity_ids.indexOf(entity_id1);
+                    index2 = group_entity_ids.indexOf(entity_id2);
+                    if (index1 == index2) {
+                        return x.attributes.friendly_name.localeCompare(y.attributes.friendly_name);
+                    }
+                }
+                return index1 - index2;
             });
 
             // Generate entities
@@ -277,44 +311,6 @@
             }
 
             document.body.innerHTML = html;
-        }
-
-        function generateGroup(entities, group_id) {
-            function findEntity(entity_id) {
-                for (var i in entities) {
-                    var entity = entities[i];
-                    if (entity.entity_id == entity_id) {
-                        return entity;
-                    }
-                }
-                console.log('Entity id not found: ' + entity_id);
-                return null;
-            }
-
-            if (!group_id.startsWith('group.'))
-                    group_id = 'group.' + group_id;
-            var group = findEntity(group_id);
-            if (!group) {
-                return '';
-            }
-
-            console.log('Sort by ' + group_id);
-            var entity_ids = group.attributes.entity_id;
-            var html = '';
-            for (var i in entity_ids) {
-                var entity_id = entity_ids[i];
-                var domain = entity_id.split('.')[0];
-                if (domain == 'group') {
-                    html += generateGroup(entities, entity_id);
-                } else if (_DOMAIN_ICONS.hasOwnProperty(domain)) {
-                    var entity = findEntity(entity_id);
-                    if (entity && !entity.attributes.hidden && entity.attributes.hasOwnProperty('friendly_name')) {
-                        html += generateEntity(entity);
-                    }
-                }
-            }
-
-            return html;
         }
 
         function handleEvent(entity) {
