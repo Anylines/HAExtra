@@ -180,20 +180,22 @@
         }
 
         function connect() {
-            if (location.search.startsWith('?ws'))
-                var url = location.search.slice(1);
+            var params = location.search.split('@');
+            if (params.length > 1)
+                var url = params[params.length - 1];
             else
-                var url = (location.protocol == 'https:' ? 'wss:' : 'ws:') + '//' + location.host;
+                var url = (location.protocol == 'https:' ? 'wss:' : 'ws:') + location.host;
             console.log('Connect to ' + url);
             _ws = new WebSocket(url + '/api/websocket');
             _ws.onopen = function () {
-                if (localStorage.hassTokens) {
+                var password = params[0].slice(1);
+                if (password) {
+                    _ws.send('{"type": "auth", "api_password": "' + password + '"}');
+                } else if (localStorage.hassTokens) {
                     var access_token = JSON.parse(localStorage.hassTokens).access_token;
                     if (access_token) {
                         _ws.send('{"type": "auth", "access_token": "' + access_token + '"}');
                     }
-                } else if (location.hash.startsWith('#')) {
-                    _ws.send('{"type": "auth", "api_password": "' + location.hash.slice(1) + '"}');
                 }
                 _ws.send('{"id": 2, "type": "subscribe_events", "event_type": "state_changed"}');
                 _ws.send('{"id": 3, "type": "get_states"}');
@@ -235,12 +237,10 @@
             'media_player': 'play-circle-outline',
             'cover': 'window-closed',
             'vacuum': 'robot-vacuum',
-            //'group': 'account-group',
         };
 
         function handleStates(entities) {
             if (entities == null) {
-                //document.body.innerText = 'Error on request states!';
                 return;
             }
 
