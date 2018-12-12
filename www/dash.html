@@ -273,15 +273,11 @@
                 return null;
             }
 
-            // var groupName = 'default_view';
-            // var groupIndicator = true;
-            // var groupFilter = true;
-
-            // Sort by group
+            // Prepare group data
             var group_count = 1;
             var entity_group_nos = {};
-            var group_entity_ids = [];
-            function groupEntitiyIDs(group_id) {
+            var sorted_entity_ids = [];
+            function prepareGroup(group_id) {
                 var group = findEntity(group_id);
                 if (group) {
                     console.log('Sort by ' + group_id);
@@ -290,20 +286,27 @@
                     for (var i in entity_ids) {
                         var entity_id = entity_ids[i];
                         if (entity_id.startsWith('group')) {
-                            groupEntitiyIDs(entity_id);
+                            prepareGroup(entity_id);
                         } else/* if (_DOMAIN_ICONS.hasOwnProperty(entity_id.split('.')[0]) && !entity.attributes.hidden)*/ {
-                            group_entity_ids.push(entity_id);
+                            sorted_entity_ids.push(entity_id);
                             entity_group_nos[entity_id] = group_no;
                         }
                     }
                 }
+                return group != null;
             }
-            groupEntitiyIDs('group.' + (location.hash ? location.hash.slice(1) : 'default_view'));
+
+            // Group params via hash
+            var params = (location.hash ? location.hash.slice(1) : 'default_view@1@1').split('@');
+            var sort_by_group = prepareGroup('group.' + params[0]);
+            var filter_by_group = sort_by_group ? parseInt(params[1]) : false;
+            var indicator_by_group = sort_by_group ? parseInt(params[2]) : false;
 
             // Remove unsupport entities
             for (var j = entities.length - 1; j >= 0; j--) {
                 var entity = entities[j];
-                if (!_DOMAIN_ICONS.hasOwnProperty(entity.entity_id.split('.')[0]) || entity.attributes.hidden/* || !entity.attributes.hasOwnProperty('friendly_name')*/)
+                var entity_id = entity.entity_id;
+                if ((filter_by_group && sorted_entity_ids.indexOf(entity_id) == -1) || !_DOMAIN_ICONS.hasOwnProperty(entity_id.split('.')[0]) || entity.attributes.hidden/* || !entity.attributes.hasOwnProperty('friendly_name')*/)
                     entities.splice(j, 1);
             }
 
@@ -315,9 +318,10 @@
                 var index1 = domains.indexOf(entity_id1.split('.')[0]);
                 var index2 = domains.indexOf(entity_id2.split('.')[0]);
                 if (index1 == index2) {
-                    index1 = group_entity_ids.indexOf(entity_id1);
-                    index2 = group_entity_ids.indexOf(entity_id2);
-                    if (index1 == index2) {
+                    if (sort_by_group) {
+                        index1 = sorted_entity_ids.indexOf(entity_id1);
+                        index2 = sorted_entity_ids.indexOf(entity_id2);
+                    } else {
                         return x.attributes.friendly_name.localeCompare(y.attributes.friendly_name);
                     }
                 }
@@ -328,8 +332,7 @@
             var html = '';
             for (var i in entities) {
                 var entity = entities[i];
-                var group_no = entity_group_nos[entity.entity_id];
-                var hue = Math.floor((/*group_no % 2 ? (group_count - group_no - 1) : */group_no) * 360 / group_count);
+                var hue = indicator_by_group ? Math.floor(entity_group_nos[entity.entity_id] * 360 / group_count) : 0;
                 html += makeEntity(entity, hue);
             }
 
