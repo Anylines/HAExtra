@@ -136,10 +136,7 @@ class CaiYunSensor(Entity):
 
     @property
     def icon(self):
-        icon = self._icon
-        if self._type == 'weather' and 'mdicon' in self._caiyun.data:
-            icon = 'weather-' + self._caiyun.data['mdicon']
-        return 'mdi:' + icon
+        return 'mdi:' + ('weather-' + self._caiyun.data.get('mdicon') if self._type == 'weather' else self._icon)
 
     @property
     def unit_of_measurement(self):
@@ -158,7 +155,7 @@ class CaiYunSensor(Entity):
 
     @property
     def state(self):
-        return self.state_from_data(self._caiyun.data)
+        return self._caiyun.data.get(self._type)
 
     @property
     def state_attributes(self):
@@ -168,10 +165,6 @@ class CaiYunSensor(Entity):
     def should_poll(self):  # pylint: disable=no-self-use
         """No polling needed."""
         return False
-
-    def state_from_data(self, data):
-        return data[self._type] if self._type in data else None
-
 
 class CaiYunData:
     """Class for handling the data retrieval."""
@@ -190,7 +183,7 @@ class CaiYunData:
 
         tasks = []
         for sensor in self.sensors:
-            if sensor.state != sensor.state_from_data(old_data):
+            if sensor.state != old_data.get(sensor._type):
                 _LOGGER.info('%s: => %s', sensor.name, sensor.state)
                 tasks.append(sensor.async_update_ha_state())
 
@@ -219,11 +212,7 @@ class CaiYunData:
                 raise
 
             skycon = result['skycon']
-            weather,mdicon = WEATHER_ICONS[skycon]
-            data['weather'] = weather
-            data['skycon'] = skycon
-            if mdicon:
-                data['mdicon'] = mdicon
+            data['weather'],data['mdicon'] = WEATHER_ICONS[skycon]
 
             data['temperature'] = round(result['temperature'])
             data['humidity'] = int(result['humidity'] * 100)
@@ -244,11 +233,16 @@ class CaiYunData:
             if wind:
                 data['wind_direction'] = wind.get('direction')
                 data['wind_speed'] = wind.get('speed')
-            data['pm10'] = result.get('pm10')
-            data['o3'] = result.get('o3')
-            data['co'] = result.get('co')
-            data['no2'] = result.get('no2')
-            data['so2'] = result.get('so2')
+            if 'pm10' in result:
+                data['pm10'] = result['pm10']
+            if 'o3' in result:
+                data['o3'] = result['o3']
+            if 'co' in result:
+                data['co'] = result['co']
+            if 'no2' in result:
+                data['no2'] = result['no2']
+            if 'so2' in result:
+                data['so2'] = result['so2']
         except:
             import traceback
             _LOGGER.error('exception: %s', traceback.format_exc())
