@@ -298,7 +298,7 @@
 
             // Group params via hash
             var params = (location.hash ? location.hash.slice(1) : 'default_view@1@1').split('@');
-            var sort_by_group = prepareGroup('group.' + params[0]);
+            var sort_by_group = (params[0] != 'NA') ? prepareGroup('group.' + params[0]) : false;
             var filter_by_group = sort_by_group ? parseInt(params[1]) : false;
             var indicator_by_group = sort_by_group ? parseInt(params[2]) : false;
 
