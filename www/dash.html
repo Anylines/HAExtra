@@ -26,8 +26,6 @@
             text-align: center;
             font-weight: 300;
             font-size: 11pt;
-            border: 0px solid hsl(0, 100%, 50%);
-            border-bottom-width: 2px;
         }
 
         @media (hover: hover) {
@@ -221,8 +219,8 @@
             };
             _ws.onclose = function () {
                 if (!document.getElementById('error'))
-                    document.body.innerHTML = '<div id="error">连接 ' + url + ' 关闭，10秒后重连</div>';
-                setTimeout('connect()', 10000);
+                    document.body.innerHTML = '<div id="error">连接 ' + url + ' 关闭，60秒后重连</div>';
+                setTimeout('connect()', 60000);
             };
             _ws.onmessage = function (message) {
                 var json = JSON.parse(message.data);
@@ -431,7 +429,7 @@
             if (domain != 'sensor' && domain != 'binary_sensor' && domain != 'device_tracker')
                 html += ' onclick="handleClick(this)"';
             if (hue)
-                html += ' style="border-color: hsl(' + hue + ',100%,50%)"';
+                html += ' style="border: 0px solid hsl(' + hue + ', 100%, 50%); box-sizing: border-box; border-bottom-width: 1px"';
             html += '>';
             html += makeState(entity);
             html += '</div> ';
