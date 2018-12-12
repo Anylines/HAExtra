@@ -89,25 +89,25 @@
         }
 
         .state,
-        .state-disabled,
+        .state-off,
         .state-nan,
-        .state-disabled-nan {
+        .state-off-nan {
             height: 52px;
             line-height: 52px;
         }
 
         .state,
-        .state-disabled {
+        .state-off {
             font-size: 44px;
         }
 
         .state-nan,
-        .state-disabled-nan {
+        .state-off-nan {
             font-size: 36px;
         }
 
-        .state-disabled,
-        .state-disabled-nan {
+        .state-off,
+        .state-off-nan {
             color: rgba(230, 230, 230, 0.5);
         }
 
@@ -344,11 +344,11 @@
             entity_id = element.id;
             var domain = entity_id.split('.')[0];
             var state = element.children[1];
-            var disabled = state.className == 'state-disabled';
+            var off = state.className.startsWith('state-off');
             if (domain == 'cover')
-                var service = disabled ? 'open_cover' : 'close_cover';
+                var service = off ? 'open_cover' : 'close_cover';
             else
-                var service = disabled ? 'turn_on' : 'turn_off';
+                var service = off ? 'turn_on' : 'turn_off';
 
             console.log('Processing: ' + domain + '/' + service + '/' + entity_id);
             _ws.send('{"id": ' + _wsid++ + ', "type": "call_service", "domain":"' + domain + '","service":"' + service + '","service_data":{"entity_id":"' + entity_id + '"}}');
@@ -428,20 +428,18 @@
 
             var html = '<div class="name">' + attributes.friendly_name + '</div>';
 
-            var disabled = (state == 'off' || state == 'not_home' || state == 'unavailable' || state == 'closed' || state == 'docked' || state == 'low') ? '-disabled' : '';
-            if ((domain == 'sensor' && attributes.mdicon == null) || domain == 'climate') { // TODO: Replace mdicon checking to another way
-                if (domain == 'climate') {
-                    state = attributes.current_temperature;
-                } else if (_STATE_MAPS.hasOwnProperty(state)) {
-                    state = _STATE_MAPS[state];
-                }
+            var off = (state == 'off' || state == 'not_home' || state == 'unavailable' || state == 'closed' || state == 'docked' || state == 'low') ? '-off' : '';
+            if (_STATE_MAPS.hasOwnProperty(state))
+                state =_STATE_MAPS[state];
 
-                var nan = isNaN(state);
-                html += '<div class="state' + disabled + (nan ? '-nan' : '') + '">';
-                html += nan ? state : Math.floor(parseFloat(state) * 100) / 100;
+            if ((domain == 'sensor' && attributes.mdicon == null) || domain == 'climate') { // TODO: Replace mdicon checking to another way
+                var value = (domain == 'climate') ? attributes.current_temperature : state;
+                var nan = isNaN(value);
+                html += '<div class="state' + off + (nan ? '-nan' : '') + '">';
+                html += nan ? value : Math.floor(parseFloat(value) * 100) / 100;
 
                 var unit = attributes.unit_of_measurement;
-                if (unit && !disabled)
+                if (unit && !off)
                     html += '<span class="unit">' + unit + '</span>'
             } else {
                 var icon = attributes.icon;
@@ -452,21 +450,21 @@
                     var device_class = attributes.device_class;
                     if (!_BINARY_SENSOR_ICONS.hasOwnProperty(device_class))
                         device_class = 'default';
-                    icon = _BINARY_SENSOR_ICONS[device_class][disabled ? 0 : 1];
+                    icon = _BINARY_SENSOR_ICONS[device_class][off ? 0 : 1];
                 } else {
                     icon = _DOMAIN_ICONS[domain];
                 }
 
-                html += '<div class="state' + disabled + '">';
+                html += '<div class="state' + off + '">';
                 html += '<i class="mdi mdi-' + icon + '"></i>';
             }
             html += '</div>'
 
-            if (!disabled) {
+            if (!off) {
                 if (attributes.hasOwnProperty('dashboard_static_text_attribute')) {
                     extra = attributes[attributes.dashboard_static_text_attribute];
                 } else if (domain == 'climate') {
-                    extra = (_STATE_MAPS.hasOwnProperty(state) ? _STATE_MAPS[state] : state) + ' ' + attributes.temperature + '°C';
+                    extra = state + ' ' + attributes.temperature + '°C';
                 } else if (domain == 'fan') {
                     var speed = attributes.speed.toLowerCase();
                     extra = _STATE_MAPS.hasOwnProperty(speed) ? _STATE_MAPS[speed] : speed.replace("level", "档位");
