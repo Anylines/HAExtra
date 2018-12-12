@@ -26,6 +26,8 @@
             text-align: center;
             font-weight: 300;
             font-size: 11pt;
+            border: 0px solid hsl(0, 100%, 50%);
+            border-bottom-width: 2px;
         }
 
         @media (hover: hover) {
@@ -256,18 +258,22 @@
             }
 
             // Sort by group
+            var group_count = 0;
+            var entity_group_nos = {};
             var group_entity_ids = [];
             function groupEntitiyIDs(group_id) {
                 var group = findEntity(group_id);
                 if (group) {
                     console.log('Sort by ' + group_id);
                     var entity_ids = group.attributes.entity_id;
+                    var group_no = ++group_count;
                     for (var i in entity_ids) {
                         var entity_id = entity_ids[i];
                         if (entity_id.startsWith('group')) {
                             groupEntitiyIDs(entity_id);
                         } else/* if (_DOMAIN_ICONS.hasOwnProperty(entity_id.split('.')[0]) && !entity.attributes.hidden)*/ {
                             group_entity_ids.push(entity_id);
+                            entity_group_nos[entity_id] = group_no;
                         }
                     }
                 }
@@ -301,7 +307,10 @@
             // Generate entities
             var html = '';
             for (var i in entities) {
-                html += generateEntity(entities[i]);
+                var entity = entities[i];
+                var group_no = entity_group_nos[entity.entity_id];
+                var hue = group_no ? (group_no * 360 / group_count) : 0;
+                html += makeEntity(entity, hue);
             }
 
             document.body.innerHTML = html;
@@ -309,7 +318,10 @@
 
         function handleEvent(entity) {
             var element = document.getElementById(entity.entity_id);
-            if (element == null) {
+            if (element) {
+                element.innerHTML = makeState(entity);
+                //console.log('Update entity: ' + entity.attributes.friendly_name);
+            } else {
                 var domain = entity.entity_id.split('.')[0];
                 if (_DOMAIN_ICONS.hasOwnProperty(domain)) {
                     console.log('Entity not found: ' + entity.entity_id);
@@ -317,14 +329,7 @@
                 } else {
                     console.log('Skip entity: ' + entity.entity_id);
                 }
-                return;
             }
-
-            var grid = generateEntity(entity);
-            var template = document.createElement('template');
-            template.innerHTML = grid;
-            element.parentNode.replaceChild(template.content.firstChild, element);
-            //console.log('Update entity: ' + entity.attributes.friendly_name);
         }
 
         function handleClick(element) {
@@ -348,7 +353,7 @@
             console.log('Processing: ' + domain + '/' + service + '/' + entity_id);
             _ws.send('{"id": ' + _wsid++ + ', "type": "call_service", "domain":"' + domain + '","service":"' + service + '","service_data":{"entity_id":"' + entity_id + '"}}');
 
-            setTimeout('_processing = false', 1000);    // Avoid misoperation
+            setTimeout('_processing = false', 1000);    // Avoid mis-operation
         }
 
         _STATE_MAPS = {
@@ -400,11 +405,28 @@
             'default': ['radiobox-blank', 'checkbox-marked-circle'],
         }
 
-        function generateEntity(entity) {
+        function makeEntity(entity, hue) {
             var entity_id = entity.entity_id;
             var domain = entity_id.split('.')[0];
+
+            var html = '<div class="' + domain + '" id="' + entity_id + '"';
+            if (domain != 'sensor' && domain != 'binary_sensor' && domain != 'device_tracker')
+                html += ' onclick="handleClick(this)"';
+            if (hue)
+                html += ' style="border-color: hsl(' + hue + ',100%,50%)"';
+            html += '>';
+            html += makeState(entity);
+            html += '</div> ';
+
+            return html;
+        }
+
+        function makeState(entity) {
+            var domain = entity.entity_id.split('.')[0];
             var state = entity.state;
             var attributes = entity.attributes;
+
+            var html = '<div class="name">' + attributes.friendly_name + '</div>';
 
             var disabled, extra;
             if (state == 'off' || state == 'not_home' || state == 'unavailable' || state == 'closed' || state == 'docked' || state == 'low') {
@@ -424,11 +446,6 @@
                 }
             }
 
-            var grid = '<div class="' + (state == 'unavailable' ? 'unavailable' : domain) + '" id="' + entity_id + '"';
-            if (domain != 'sensor' && domain != 'binary_sensor' && domain != 'device_tracker')
-                grid += ' onclick="handleClick(this)"';
-            grid += '><div class="name">' + attributes.friendly_name + '</div>';
-
             if ((domain == 'sensor' && attributes.mdicon == null) || domain == 'climate') { // TODO: Replace mdicon checking to another way
                 if (domain == 'climate') {
                     state = attributes.current_temperature;
@@ -437,12 +454,12 @@
                 }
 
                 var nan = isNaN(state);
-                grid += '<div class="state' + disabled + (nan ? '-nan' : '') + '">';
-                grid += nan ? state : Math.floor(parseFloat(state) * 100) / 100;
+                html += '<div class="state' + disabled + (nan ? '-nan' : '') + '">';
+                html += nan ? state : Math.floor(parseFloat(state) * 100) / 100;
 
                 var unit = attributes.unit_of_measurement;
                 if (unit && disabled == '')
-                    grid += '<span class="unit">' + unit + '</span>'
+                    html += '<span class="unit">' + unit + '</span>'
             } else {
                 var icon = attributes.icon;
                 if (icon && icon.startsWith('mdi:')) {
@@ -457,16 +474,15 @@
                     icon = _DOMAIN_ICONS[domain];
                 }
 
-                grid += '<div class="state' + disabled + '">';
-                grid += '<i class="mdi mdi-' + icon + '"></i>';
+                html += '<div class="state' + disabled + '">';
+                html += '<i class="mdi mdi-' + icon + '"></i>';
             }
-            grid += '</div>'
+            html += '</div>'
 
             if (extra != null) {
-                grid += '<div class="extra">' + extra + '</div>';
+                html += '<div class="extra">' + extra + '</div>';
             }
-            grid += '</div> ';
-            return grid;
+            return html;
         }
 
     </script>
