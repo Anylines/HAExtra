@@ -450,7 +450,7 @@
                 if (domain == 'climate') {
                     state = attributes.current_temperature;
                 } else if (_STATE_MAPS.hasOwnProperty(state)) {
-                    state = states[state];
+                    state = _STATE_MAPS[state];
                 }
 
                 var nan = isNaN(state);
