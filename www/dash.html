@@ -428,24 +428,7 @@
 
             var html = '<div class="name">' + attributes.friendly_name + '</div>';
 
-            var disabled, extra;
-            if (state == 'off' || state == 'not_home' || state == 'unavailable' || state == 'closed' || state == 'docked' || state == 'low') {
-                disabled = '-disabled';
-                extra = null;
-            } else {
-                disabled = '';
-                if (attributes.hasOwnProperty('dashboard_static_text_attribute')) {
-                    extra = attributes[attributes.dashboard_static_text_attribute];
-                } else if (domain == 'climate') {
-                    extra = (_STATE_MAPS.hasOwnProperty(state) ? _STATE_MAPS[state] : state) + ' ' + attributes.temperature + '°C';
-                } else if (domain == 'fan') {
-                    var speed = attributes.speed.toLowerCase();
-                    extra = _STATE_MAPS.hasOwnProperty(speed) ? _STATE_MAPS[speed] : speed.replace("level", "档位");
-                } else {
-                    extra = null;
-                }
-            }
-
+            var disabled = (state == 'off' || state == 'not_home' || state == 'unavailable' || state == 'closed' || state == 'docked' || state == 'low') ? '-disabled' : '';
             if ((domain == 'sensor' && attributes.mdicon == null) || domain == 'climate') { // TODO: Replace mdicon checking to another way
                 if (domain == 'climate') {
                     state = attributes.current_temperature;
@@ -458,7 +441,7 @@
                 html += nan ? state : Math.floor(parseFloat(state) * 100) / 100;
 
                 var unit = attributes.unit_of_measurement;
-                if (unit && disabled == '')
+                if (unit && !disabled)
                     html += '<span class="unit">' + unit + '</span>'
             } else {
                 var icon = attributes.icon;
@@ -469,7 +452,7 @@
                     var device_class = attributes.device_class;
                     if (!_BINARY_SENSOR_ICONS.hasOwnProperty(device_class))
                         device_class = 'default';
-                    icon = _BINARY_SENSOR_ICONS[device_class][disabled == '' ? 1 : 0];
+                    icon = _BINARY_SENSOR_ICONS[device_class][disabled ? 0 : 1];
                 } else {
                     icon = _DOMAIN_ICONS[domain];
                 }
@@ -479,9 +462,20 @@
             }
             html += '</div>'
 
-            if (extra != null) {
+            if (!disabled) {
+                if (attributes.hasOwnProperty('dashboard_static_text_attribute')) {
+                    extra = attributes[attributes.dashboard_static_text_attribute];
+                } else if (domain == 'climate') {
+                    extra = (_STATE_MAPS.hasOwnProperty(state) ? _STATE_MAPS[state] : state) + ' ' + attributes.temperature + '°C';
+                } else if (domain == 'fan') {
+                    var speed = attributes.speed.toLowerCase();
+                    extra = _STATE_MAPS.hasOwnProperty(speed) ? _STATE_MAPS[speed] : speed.replace("level", "档位");
+                } else {
+                    return html;
+                }
                 html += '<div class="extra">' + extra + '</div>';
             }
+
             return html;
         }
 
