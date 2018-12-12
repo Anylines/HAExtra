@@ -258,7 +258,7 @@
             }
 
             // Sort by group
-            var group_count = 0;
+            var group_count = 1;
             var entity_group_nos = {};
             var group_entity_ids = [];
             function groupEntitiyIDs(group_id) {
@@ -266,7 +266,7 @@
                 if (group) {
                     console.log('Sort by ' + group_id);
                     var entity_ids = group.attributes.entity_id;
-                    var group_no = ++group_count;
+                    var group_no = group_count++;
                     for (var i in entity_ids) {
                         var entity_id = entity_ids[i];
                         if (entity_id.startsWith('group')) {
@@ -309,7 +309,7 @@
             for (var i in entities) {
                 var entity = entities[i];
                 var group_no = entity_group_nos[entity.entity_id];
-                var hue = group_no ? (group_no * 360 / group_count) : 0;
+                var hue = Math.floor((/*group_no % 2 ? (group_count - group_no - 1) : */group_no) * 360 / group_count);
                 html += makeEntity(entity, hue);
             }
 
