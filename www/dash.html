@@ -362,7 +362,8 @@
             }
             _processing = true;
 
-            element.style = 'animation: tuning 1s infinite alternate';
+            var style = element.style.cssText;
+            element.style = 'animation: tuning 1s infinite alternate; ' + style;
 
             entity_id = element.id;
             var domain = entity_id.split('.')[0];
@@ -376,7 +377,10 @@
             console.log('Processing: ' + domain + '/' + service + '/' + entity_id);
             _ws.send('{"id": ' + _wsid++ + ', "type": "call_service", "domain":"' + domain + '","service":"' + service + '","service_data":{"entity_id":"' + entity_id + '"}}');
 
-            setTimeout('_processing = false', 1000);    // Avoid mis-operation
+            setTimeout(function () {
+                element.style = style;
+                _processing = false;
+            }, 2000);    // Avoid mis-operation
         }
 
         _STATE_MAPS = {
